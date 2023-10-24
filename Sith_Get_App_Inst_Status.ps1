@@ -1,7 +1,8 @@
 cls
 $AllApp = $null
 $readfile = Get-Content -Path 'c:\Programdata\Microsoft\IntuneManagementExtension\Logs\IntuneManagementExtension.log'
-write-host "Apps to be install " -ForegroundColor Green
+#$readfile = Get-Content -Path C:\Intel\IntuneManagementExtension.log
+#write-host "Apps to be install " -ForegroundColor Green
 foreach ($item in $readfile)
 {
     if ($item -like "* In EspPhase: DeviceSetup. App*")
@@ -10,12 +11,14 @@ foreach ($item in $readfile)
         $AppNAme = ($item.Substring(128)).split("]")[0]
         $AppInst = "AppID: " + $AppID + " AppName: " + $AppNAme       
         $AllApp = @($AppInst) + $AllApp
-        Write-Output $AppInst    
+        # Write-Output $AppInst    
     }
 }
 
 $AppDownloadStatus= $null
 $AppDownload = "Downloading app"
+$AppHash = 'Starts verifying encrypted hash'
+$AppHashStatus = $null
 $AppUnzippingStatus= $null
 $AppUnzipping = "Start unzipping"
 $AppLaunchStatus= $null
@@ -33,6 +36,17 @@ foreach ($item in $readfile)
     if ($item -like "*Notified DO Service the job is complete*")
     {
          $AppDownloadStatus = $null                     
+    }  
+
+
+    if (($item -like "*$AppHash*") -and $AppHashStatus -eq $null)
+    {
+        $AppHashStatus = "Begin"                   
+    }
+
+    if ($item -like "*download and decryption is successfully done*")
+    {
+         $AppHashStatus = $null                     
     }  
 
     if (($item -like "*$AppUnzipping*") -and $AppUnzippingStatus -eq $null)
@@ -65,6 +79,19 @@ if ($AppDownloadStatus -eq "Begin")
         if ($item -like "*$AppDownloadId*")
         {
             Write-Host $AppDownload -ForegroundColor Red
+            write-host $item
+        }
+    }
+    
+}
+
+if ($AppHashStatus -EQ "Begin")
+{
+    foreach ($item in $AllApp)
+    {
+        if ($item -like "*$AppDownloadId*")
+        {
+            Write-Host $AppHash -ForegroundColor Red
             write-host $item
         }
     }

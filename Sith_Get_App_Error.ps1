@@ -20,11 +20,14 @@ foreach ($item in $readfile)
     }
 }
 
-foreach ($item in $AllApp)
+IF ($foundError.count -ne 0)
 {
-    if ($item -like "*$foundError*")
+    foreach ($item in $AllApp)
     {
-        write-host "Found error "  -ForegroundColor Red
-        write-host $item
+        if ($item -like "*$foundError*")
+        {
+            write-host "Found error "  -ForegroundColor Red
+            write-host $item
+        }
     }
 }

@@ -1,7 +1,6 @@
 cls
 $AllApp = $null
-#$readfile = Get-Content -Path 'c:\Programdata\Microsoft\IntuneManagementExtension\Logs\IntuneManagementExtension.log'
-$readfile = Get-Content -Path C:\data\IntuneManagementExtension.log
+$readfile = Get-Content -Path 'c:\Programdata\Microsoft\IntuneManagementExtension\Logs\IntuneManagementExtension.log'
 write-host "Apps to be install " -ForegroundColor Green
 foreach ($item in $readfile)
 {

@@ -1,4 +1,4 @@
-﻿cls
+cls
 $AllApp = $null
 #$readfile = Get-Content -Path 'c:\Programdata\Microsoft\IntuneManagementExtension\Logs\IntuneManagementExtension.log'
 $readfile = Get-Content -Path C:\data\IntuneManagementExtension.log
@@ -51,10 +51,10 @@ foreach ($item in $readfile)
         $AppLaunchStatus = "Begin"                   
     }
 
-    if ($item -like "*Completed detectionManager SideCarFileDetectionManager, applicationDetectedByCurrentRule: True*")
+    if (($item -like "*Completed detectionManager SideCarFileDetectionManager, applicationDetectedByCurrentRule: True*") -or ($item -like "*Completed detectionManager SideCarRegistryDetectionManager, applicationDetectedByCurrentRule: True*"))
     {
          $AppLaunchStatus = $null                     
-    } 
+    }
 }
 
 
@@ -72,7 +72,7 @@ if ($AppDownloadStatus -eq "Begin")
     
 }
 
-if ($AppUnzippingStatus -ne "Begin")
+if ($AppUnzippingStatus -EQ "Begin")
 {
     foreach ($item in $AllApp)
     {

@@ -28,5 +28,3 @@ foreach ($item in $AllApp)
         write-host $item
     }
 }
-
-#MBCP - CORE - AutoBranding), start downloading..

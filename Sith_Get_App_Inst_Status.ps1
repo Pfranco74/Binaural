@@ -1,8 +1,8 @@
 cls
 $AllApp = $null
-$readfile = Get-Content -Path 'c:\Programdata\Microsoft\IntuneManagementExtension\Logs\IntuneManagementExtension.log'
-#$readfile = Get-Content -Path C:\Data\IntuneManagementExtension.log
-#write-host "Apps to be install " -ForegroundColor Green
+#$readfile = Get-Content -Path 'c:\Programdata\Microsoft\IntuneManagementExtension\Logs\IntuneManagementExtension.log'
+$readfile = Get-Content -Path C:\Data\IntuneManagementExtension.log
+#Write-host ""write-host "Apps to be install " -ForegroundColor Green
 foreach ($item in $readfile)
 {
     if ($item -like "* In EspPhase: DeviceSetup. App*")
@@ -11,8 +11,34 @@ foreach ($item in $readfile)
         $AppNAme = ($item.Substring(128)).split("]")[0]
         $AppInst = "AppID: " + $AppID + " AppName: " + $AppNAme       
         $AllApp = @($AppInst) + $AllApp
-        # Write-Output $AppInst    
+        #Write-Output $AppInst    
     }
+}
+
+function AppID ($Block,$AppControl)
+{
+   if ($AppControl -notlike "*$Block*")
+   {
+        foreach ($item in $AllApp)
+        {
+            if ($item -like "*$Block*")
+            {
+                Return $item
+            }
+        }   
+   }
+   else
+   {
+    Return $null
+   }
+   
+}
+
+function HowLong ($start,$end)
+{
+    $TakeThat = (New-TimeSpan -start $start -End $end).ToString()
+    $TakeThat = "Total Time: " + $TakeThat
+    Return $TakeThat
 }
 
 $AppDownloadStatus= $null
@@ -27,19 +53,20 @@ $AppLaunch = "Launch Win32AppInstaller in machine session"
 foreach ($item in $readfile)
 {
     if (($item -like "*$AppDownload*") -and $AppDownloadStatus -eq $null)
-    {
+    {        
         $timelog = ((($item.Split(" ")[7]).split("=")[-1]).split(".")[0]).substring(1,8)
         $datelog = ((($item.Split(" ")[8]).split("=")[-1]).split(".")[0]).substring(1,10)
-
-        $AppDownloadId = $Item.Substring(53,36)   
-        $AppDownloadStatus = "Begin"                     
+        $AppDownloadStatus = "Begin"
+        $timestart = $timelog
+        $AppDownloadId = $Item.Substring(53,36)           
+               
     }
     
     if ($item -like "*Notified DO Service the job is complete*")
     {
         $timelog = ((($item.Split(" ")[6]).split("=")[-1]).split(".")[0]).substring(1,8)
         $datelog = ((($item.Split(" ")[7]).split("=")[-1]).split(".")[0]).substring(1,10)
-        $AppDownloadStatus = $null                     
+        $AppDownloadStatus = $null                        
     }  
 
 
@@ -83,67 +110,50 @@ foreach ($item in $readfile)
     {
         $timelog = ((($item.Split(" ")[5]).split("=")[-1]).split(".")[0]).substring(1,8)
         $datelog = ((($item.Split(" ")[6]).split("=")[-1]).split(".")[0]).substring(1,10)
+        $AppLaunchStatus = $null  
 
-        $AppLaunchStatus = $null                     
+        $timeend = $timelog  
+        $takethat = HowLong $timestart $timeend
+        $App = AppID $AppDownloadId $AppCtrl
+        $AppCtrl = $App
+        if ($App -ne $null)
+        {
+            Write-Host $App -ForegroundColor Green  
+            Write-Host $takethat            
+        }                   
     }
 }
 
-
+$App = AppID $AppDownloadId
 
 if ($AppDownloadStatus -eq "Begin")
-{
-    foreach ($item in $AllApp)
-    {
-        if ($item -like "*$AppDownloadId*")
-        {
-            $logdate = "Start at " + $datelog + " " + $timelog
-
-            Write-Host $AppDownload -ForegroundColor Red
-            Write-Host $logdate            
-            write-host $item
-        }
-    }
-    
+{   
+    Write-host ""
+    Write-Host $AppDownload -ForegroundColor Red
+    Write-Host $logdate            
+    write-host $App   
 }
 
 if ($AppHashStatus -EQ "Begin")
 {
-    foreach ($item in $AllApp)
-    {
-        if ($item -like "*$AppDownloadId*")
-        {
-            Write-Host $AppHash -ForegroundColor Red
-            Write-Host $logdate
-            write-host $item
-        }
-    }
-    
+    Write-host ""
+    Write-Host $AppHash -ForegroundColor Red
+    Write-Host $logdate
+    write-host $App   
 }
 
 if ($AppUnzippingStatus -EQ "Begin")
 {
-    foreach ($item in $AllApp)
-    {
-        if ($item -like "*$AppDownloadId*")
-        {
-            Write-Host $AppUnzipping -ForegroundColor Red
-            Write-Host $logdate
-            write-host $item
-        }
-    }
-    
+    Write-host ""
+    Write-Host $AppUnzipping -ForegroundColor Red
+    Write-Host $logdate
+    write-host $App   
 }
 
 if ($AppLaunchStatus -eq "Begin")
 {
-    foreach ($item in $AllApp)
-    {
-        if ($item -like "*$AppDownloadId*")
-        {
-            Write-Host $AppLaunch -ForegroundColor Red
-            Write-Host $logdate
-            write-host $item
-        }
-    }
-    
+    Write-host ""
+    Write-Host $AppLaunch -ForegroundColor Red
+    Write-Host $logdate
+    write-host $App   
 }

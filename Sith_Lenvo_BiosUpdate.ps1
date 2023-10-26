@@ -1,4 +1,4 @@
-﻿ CLS
+ CLS
  #Create a tag file just so Intune knows this was installed
 if (-not (Test-Path "C:\Windows\Temp\Logs\Bios"))
 {
@@ -7,17 +7,13 @@ if (-not (Test-Path "C:\Windows\Temp\Logs\Bios"))
 
 
 # Start logging
-Start-Transcript "C:\Windows\Temp\Logs\Bios\Lenovo_Update.log"
+Start-Transcript "C:\Windows\Temp\Logs\Bios\Lenovo_Bios_Update.log"
 
 if (-not (Test-Path "C:\Windows\Temp\Bios\Lenovo"))
 {
     Mkdir "C:\Windows\Temp\Bios\Lenovo"
 }
 
-if (-not (Test-Path "C:\Windows\Temp\Logs\Bios"))
-{
-    Mkdir "C:\Windows\Temp\Logs\Bios"
-}
 
 
 # If we are running as a 32-bit process on an x64 system, re-launch as a 64-bit process
@@ -62,9 +58,9 @@ else
     $List = Get-ChildItem -Path C:\Windows\Temp\Bios\Lenovo -Recurse -Filter *.exe
 
     $program = $list.FullName
-    $arg = "/verysilent /norestart /log=C:\Windows\Temp\Logs\Bios\Lenovo\BiosUpdate.log"
+    $arg = "/verysilent /norestart"
 
-    $run = ( Start-Process $program $arg -PassThru) 
+    $run = ( Start-Process $program -ArgumentList $arg -PassThru )
 
     Start-Sleep -Seconds 5
 
@@ -79,7 +75,17 @@ else
             if ($Item.name -like "*quiet*")
             {                
                 Set-Location ($item.Directory).FullName
-                #$run = ( Start-Process -Wait $item.name -PassThru) 
+                
+                $run = ( Start-Process -Wait $item.name -PassThru) 
+
+                Set-Location c:\
+
+                Remove-Item -Path C:\SWTOOLS -Force -Recurse
+                Remove-Item -Path C:\Windows\Temp\Bios\Lenovo -Force -Recurse
+
+                Stop-Transcript
+
+                exit 1641
             }
         }
     }
@@ -95,9 +101,18 @@ else
                 Set-Location ($item.Directory).FullName
                 $arg = "-s"
 
-                #$run = ( Start-Process -Wait $item.name -ArgumentList $arg -PassThru) 
+                $run = ( Start-Process -Wait $item.name -ArgumentList $arg -PassThru) 
+
+                Set-Location c:\
+
+                Remove-Item -Path C:\Drivers -Force -Recurse
+                Remove-Item -Path C:\Windows\Temp\Bios\Lenovo -Force -Recurse
+
+                Stop-Transcript
+
+                exit 1641
+
             }
         }
     }
-
 }

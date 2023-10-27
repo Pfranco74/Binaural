@@ -36,9 +36,12 @@ function AppID ($Block,$AppControl)
 
 function HowLong ($start,$end)
 {
-    $TakeThat = (New-TimeSpan -start $start -End $end).ToString()
-    $TakeThat = "Total Time: " + $TakeThat
-    Return $TakeThat
+    if (($start -ne $null) -and ($end -ne $null))
+    {
+        $TakeThat = (New-TimeSpan -start $start -End $end).ToString()
+        $TakeThat = "Total Time: " + $TakeThat
+        Return $TakeThat
+    }
 }
 
 $AppDownloadStatus= $null

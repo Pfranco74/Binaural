@@ -43,7 +43,6 @@ function HowLong ($start,$end)
         Return $TakeThat
     }
 }
-
 $AppDownloadStatus= $null
 $AppDownload = "Downloading app"
 $AppHash = 'Starts verifying encrypted hash'

@@ -9,6 +9,8 @@ function Manufacturer
         $Manufacturer = 'HP'
     }
 
+    write-host $Manufacturer -ForegroundColor Green
+
     Return $Manufacturer
 }
 
@@ -35,7 +37,11 @@ if (-not (Test-Path "C:\Windows\Temp\Bios\Lenovo"))
 
 # Start logging
 Start-Transcript "C:\Windows\Temp\Logs\Bios\Lenovo_Bios_Update.log"
+$DebugPreference = 'Continue'
+$VerbosePreference = 'Continue'
+$InformationPreference = 'Continue'
 
+Write-Host "Start Bios Update Process"
 
 # If we are running as a 32-bit process on an x64 system, re-launch as a 64-bit process
 if ("$env:PROCESSOR_ARCHITEW6432" -ne "ARM64")
@@ -52,16 +58,16 @@ try
 {
     $Manufacturer = Manufacturer
 
-    Write-Output $Manufacturer
 
     if ($Manufacturer -eq 'LENOVO')
     {
-
+        Write-Host "Install Lenovo PS Module"
         Install-Module -Name LSUClient -Force
         Import-Module -Name LSUClient
 
         #$drvlist = Get-LSUpdate -All -Model 10FL | Where-Object { $_.Installer.Unattended }
         #$drvlist | Save-LSUpdate -Path C:\Windows\Temp\Bios\Lenovo -ShowProgress
+        Write-Host "Get Lenovo Update from WEB"
         $drvlist = Get-LSUpdate -all | Where-Object {-not $_.IsInstalled }
         $BiosUpdate = $null
 
@@ -69,13 +75,14 @@ try
         {
             if (($item.type) -like "*BIOS*")
             {
+                write-host "Check for BIOS Update"
                 $BiosUpdate = $item
             }
         }
 
         if ($BiosUpdate -EQ $null)
         {
-            $ToDo = "Nothing to Do"
+            $ToDo = "Nothing to Do - Bios Update"
             Write-Output $ToDo
             Stop-Transcript
             exit 0    
@@ -83,6 +90,7 @@ try
         else
         {
             #$BiosUpdate | Install-LSUpdate -Verbose
+            write-host "Start Bios update on computer"
             $BiosUpdate | Save-LSUpdate -Path C:\Windows\Temp\Bios\Lenovo -ShowProgress
     
             $List = Get-ChildItem -Path C:\Windows\Temp\Bios\Lenovo -Recurse -Filter *.exe
@@ -113,6 +121,8 @@ try
                         Remove-Item -Path C:\SWTOOLS -Force -Recurse
                         Remove-Item -Path C:\Windows\Temp\Bios\Lenovo -Force -Recurse
 
+                        write-host "Exit with hard reboot"
+
                         Stop-Transcript
 
                         exit 1641
@@ -122,6 +132,8 @@ try
 
             if ((Test-Path "C:\Drivers"))
             {
+                write-host "Start bios update om computer"
+
                 $flash = Get-ChildItem -Path C:\Drivers -Recurse -Filter *.exe
 
                 foreach ($item in $flash)
@@ -137,6 +149,8 @@ try
 
                         Remove-Item -Path C:\Drivers -Force -Recurse
                         Remove-Item -Path C:\Windows\Temp\Bios\Lenovo -Force -Recurse
+                        
+                        write-host "Exit with hard reboot"
 
                         Stop-Transcript
 

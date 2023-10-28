@@ -37,6 +37,7 @@ function Manufacturer
         $Manufacturer = 'HP'
     }
 
+    Write-Host $Manufacturer -ForegroundColor Green
     Return $Manufacturer
 }
 
@@ -58,6 +59,9 @@ if ((Test-Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.nok"))
 
 # Start logging
 Start-Transcript "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log"
+$DebugPreference = 'Continue'
+$VerbosePreference = 'Continue'
+$InformationPreference = 'Continue'
 
 
 # If we are running as a 32-bit process on an x64 system, re-launch as a 64-bit process
@@ -76,7 +80,7 @@ $Manufacturer = Manufacturer
 # HP BIOS Block
 if ($Manufacturer -eq 'HP')
 {
-
+    write-host "Start Bios Config Process"
     $HPPar1 = HPBios
     if ($HPPar1 -eq "BushBush")
     {

@@ -7,7 +7,7 @@ function Manufacturer
     {
         $Manufacturer = 'HP'
     }
-    write-host $Manufacturer
+    write-host $Manufacturer -ForegroundColor Green
     Return $Manufacturer
 }
 
@@ -39,8 +39,6 @@ function HPBios
     Return "BushBush"
 }
 
-
-
 # Create a tag file just so Intune knows this was installed
 if (-not (Test-Path "C:\Windows\Temp\Logs\Bios"))
 {
@@ -60,9 +58,9 @@ if ((Test-Path "C:\Windows\Temp\Logs\Bios\HP_Bios_Update.nok"))
 
 # Start logging
 Start-Transcript "C:\Windows\Temp\Logs\Bios\HP_Bios_Update.log"
-#$DebugPreference = 'Continue'
-#$VerbosePreference = 'Continue'
-#$InformationPreference = 'Continue'
+$DebugPreference = 'Continue'
+$VerbosePreference = 'Continue'
+$InformationPreference = 'Continue'
 
 # If we are running as a 32-bit process on an x64 system, re-launch as a 64-bit process
 if ("$env:PROCESSOR_ARCHITEW6432" -ne "ARM64")
@@ -76,10 +74,11 @@ if ("$env:PROCESSOR_ARCHITEW6432" -ne "ARM64")
 
 try
 {
-    Write-host $Manufacturer
+    $Manufacturer = Manufacturer  
     # HP BIOS Block
     if ($Manufacturer -eq 'HP')
     {
+        write-host "Start Bios Update Process"
         $HPPar1 = HPBios
         if ($HPPar1 -eq "BushBush")
         {
@@ -100,8 +99,10 @@ try
 
             if ($BIOSCheck -eq $True)
             {     
-                # Update Bios      
+                # Update Bios 
+                Write-host "Update Bios on computer"     
                 Get-HPBIOSUpdates -Flash -BitLocker Suspend -Force -Overwrite -Password $HPPar1 -Quiet -Yes
+                write-host "Force exit code for hard reboot"
                 Stop-Transcript
                 exit 1641            
             }     

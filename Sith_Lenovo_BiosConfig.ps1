@@ -35,6 +35,7 @@ function Manufacturer
         $Manufacturer = 'HP'
     }
 
+    write-host $Manufacturer -ForegroundColor Green
     Return $Manufacturer
 }
 
@@ -57,6 +58,9 @@ if ((Test-Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.nok"))
 
 # Start logging
 Start-Transcript "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.log"
+$DebugPreference = 'Continue'
+$VerbosePreference = 'Continue'
+$InformationPreference = 'Continue'
 
 # If we are running as a 32-bit process on an x64 system, re-launch as a 64-bit process
 if ("$env:PROCESSOR_ARCHITEW6432" -ne "ARM64")
@@ -79,7 +83,8 @@ if ($Manufacturer -eq 'LENOVO')
         Write-Output "Detect BIOS PW Error"
         exit 1        
     }
-    
+    Write-Host "Start Bios Config Process"
+
     $AllBiosSettings = Get-WmiObject -class Lenovo_BiosSetting -namespace root\wmi
     $BiosSettings = @()
     $needsave = $null

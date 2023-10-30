@@ -14,6 +14,16 @@ function Manufacturer
     Return $Manufacturer
 }
 
+# If we are running as a 32-bit process on an x64 system, re-launch as a 64-bit process
+if ("$env:PROCESSOR_ARCHITEW6432" -ne "ARM64")
+{
+    if (Test-Path "$($env:WINDIR)\SysNative\WindowsPowerShell\v1.0\powershell.exe")
+    {
+        & "$($env:WINDIR)\SysNative\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy bypass -NoProfile -File "$PSCommandPath" -Reboot $Reboot -RebootTimeout $RebootTimeout
+        Exit $lastexitcode
+    }
+}
+
  #Create a tag file just so Intune knows this was installed
 if (-not (Test-Path "C:\Windows\Temp\Logs\Bios"))
 {
@@ -37,21 +47,12 @@ if (-not (Test-Path "C:\Windows\Temp\Bios\Lenovo"))
 
 # Start logging
 Start-Transcript "C:\Windows\Temp\Logs\Bios\Lenovo_Bios_Update.log"
+Write-Host "Begin"
 $DebugPreference = 'Continue'
 $VerbosePreference = 'Continue'
 $InformationPreference = 'Continue'
 
 Write-Host "Start Bios Update Process"
-
-# If we are running as a 32-bit process on an x64 system, re-launch as a 64-bit process
-if ("$env:PROCESSOR_ARCHITEW6432" -ne "ARM64")
-{
-    if (Test-Path "$($env:WINDIR)\SysNative\WindowsPowerShell\v1.0\powershell.exe")
-    {
-        & "$($env:WINDIR)\SysNative\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy bypass -NoProfile -File "$PSCommandPath" -Reboot $Reboot -RebootTimeout $RebootTimeout
-        Exit $lastexitcode
-    }
-}
 
 
 try
@@ -171,6 +172,14 @@ try
 Catch
 {
     Write-Output "Detect Error"
+    Stop-Transcript
+    Rename-Item -Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Update.log" -NewName "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Update.NOK"
+    
+    if ((Test-Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Update.log"))
+    {
+        Remove-Item -Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Update.log" -Force
+    }
+
     exit 1
 }
 

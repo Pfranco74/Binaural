@@ -39,7 +39,6 @@ function Manufacturer
     Return $Manufacturer
 }
 
-
 #Create a tag file just so Intune knows this was installed
 if (-not (Test-Path "C:\Windows\Temp\Logs\Bios"))
 {
@@ -56,12 +55,6 @@ if ((Test-Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.nok"))
     Remove-Item -Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.nok" -Force
 }
 
-# Start logging
-Start-Transcript "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.log"
-$DebugPreference = 'Continue'
-$VerbosePreference = 'Continue'
-$InformationPreference = 'Continue'
-
 # If we are running as a 32-bit process on an x64 system, re-launch as a 64-bit process
 if ("$env:PROCESSOR_ARCHITEW6432" -ne "ARM64")
 {
@@ -72,15 +65,32 @@ if ("$env:PROCESSOR_ARCHITEW6432" -ne "ARM64")
     }
 }
 
+# Start logging
+Start-Transcript "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.log"
+Write-Host "Begin"
+$DebugPreference = 'Continue'
+$VerbosePreference = 'Continue'
+$InformationPreference = 'Continue'
+
+
+
 $Manufacturer = Manufacturer
 
-# HP BIOS Block
+# Lenovo BIOS Block
 if ($Manufacturer -eq 'LENOVO')
 {
     $LenovoPar1 = LenovoBios
     if ($LenovoPar1 -eq "BushBush")
     {
         Write-Output "Detect BIOS PW Error"
+        Stop-Transcript
+        Rename-Item -Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.log" -NewName "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.NOK"
+    
+        if ((Test-Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.log"))
+        {
+            Remove-Item -Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.log" -Force
+        }
+
         exit 1        
     }
     Write-Host "Start Bios Config Process"
@@ -128,6 +138,13 @@ if ($Manufacturer -eq 'LENOVO')
                         Write-Output $Setting
                         Write-Output $value
                         Write-Output "Error Setting Bios Value"
+                        Stop-Transcript
+                        Rename-Item -Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.log" -NewName "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.NOK"
+    
+                        if ((Test-Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.log"))
+                        {
+                            Remove-Item -Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.log" -Force
+                        }
 
                         exit 1
                     }
@@ -146,6 +163,13 @@ if ($Manufacturer -eq 'LENOVO')
         if (($Save.return).ToUpper() -ne "SUCCESS")
         {
             Write-Output "Error saving Bios Settings"
+            Stop-Transcript
+            Rename-Item -Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.log" -NewName "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.NOK"
+    
+            if ((Test-Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.log"))
+            {
+                Remove-Item -Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.log" -Force
+            }
                         
             exit 1
 

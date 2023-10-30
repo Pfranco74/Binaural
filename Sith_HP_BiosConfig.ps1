@@ -57,13 +57,6 @@ if ((Test-Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.nok"))
     Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.nok" -Force
 }
 
-# Start logging
-Start-Transcript "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log"
-$DebugPreference = 'Continue'
-$VerbosePreference = 'Continue'
-$InformationPreference = 'Continue'
-
-
 # If we are running as a 32-bit process on an x64 system, re-launch as a 64-bit process
 if ("$env:PROCESSOR_ARCHITEW6432" -ne "ARM64")
 {
@@ -74,6 +67,12 @@ if ("$env:PROCESSOR_ARCHITEW6432" -ne "ARM64")
     }
 }
 
+# Start logging
+Start-Transcript "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log"
+Write-Host "Begin"
+$DebugPreference = 'Continue'
+$VerbosePreference = 'Continue'
+$InformationPreference = 'Continue'
 
 $Manufacturer = Manufacturer
 
@@ -85,6 +84,14 @@ if ($Manufacturer -eq 'HP')
     if ($HPPar1 -eq "BushBush")
     {
         Write-Output "Detect BIOS PW Error"
+        Stop-Transcript
+        Rename-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log" -NewName "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.NOK"
+    
+        if ((Test-Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log"))
+        {
+            Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log" -Force
+        }
+
         exit 1        
     }
     $AllBiosSettings = Get-WmiObject -class HP_BiosEnumeration -namespace root\hp\InstrumentedBios
@@ -118,6 +125,13 @@ if ($Manufacturer -eq 'HP')
                         Write-Output $Setting
                         Write-Output $value
                         Write-Output "Error Setting Bios Value"
+                        Stop-Transcript
+                        Rename-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log" -NewName "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.NOK"
+    
+                        if ((Test-Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log"))
+                        {
+                            Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log" -Force
+                        }
 
                         exit 1
                     }

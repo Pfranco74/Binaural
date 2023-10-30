@@ -1,4 +1,5 @@
 ﻿CLS
+
 function Manufacturer
 {
     $Manufacturer = ((Get-CimInstance -ClassName Win32_ComputerSystem).Manufacturer).toupper()
@@ -55,13 +56,6 @@ if ((Test-Path "C:\Windows\Temp\Logs\Bios\HP_Bios_Update.nok"))
     Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_Bios_Update.nok" -Force
 }
 
-
-# Start logging
-Start-Transcript "C:\Windows\Temp\Logs\Bios\HP_Bios_Update.log"
-$DebugPreference = 'Continue'
-$VerbosePreference = 'Continue'
-$InformationPreference = 'Continue'
-
 # If we are running as a 32-bit process on an x64 system, re-launch as a 64-bit process
 if ("$env:PROCESSOR_ARCHITEW6432" -ne "ARM64")
 {
@@ -71,6 +65,14 @@ if ("$env:PROCESSOR_ARCHITEW6432" -ne "ARM64")
         Exit $lastexitcode
     }
 }
+
+
+# Start logging
+Start-Transcript "C:\Windows\Temp\Logs\Bios\HP_Bios_Update.log"
+Write-Host "Begin"
+$DebugPreference = 'Continue'
+$VerbosePreference = 'Continue'
+$InformationPreference = 'Continue'
 
 try
 {
@@ -83,6 +85,14 @@ try
         if ($HPPar1 -eq "BushBush")
         {
             Write-Output "Detect BIOS PW Error"
+            Stop-Transcript
+            Rename-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log" -NewName "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.NOK"
+    
+            if ((Test-Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log"))
+            {
+                Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log" -Force
+            }
+
             exit 1        
         }
 
@@ -124,6 +134,15 @@ try
 catch
 {
     Write-Output "Detect Error"
+    Stop-Transcript
+    Rename-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log" -NewName "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.NOK"
+    
+    if ((Test-Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log"))
+    {
+        Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log" -Force
+    }
+
+
     exit 1
 }
 

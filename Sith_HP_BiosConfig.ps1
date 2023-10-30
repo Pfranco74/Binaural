@@ -41,6 +41,19 @@ function Manufacturer
     Return $Manufacturer
 }
 
+function ForceErr
+{
+    Stop-Transcript
+    Rename-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log" -NewName "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.NOK"
+    
+    if ((Test-Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log"))
+    {
+        Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log" -Force
+    }
+
+    exit 13    
+}
+
  #Create a tag file just so Intune knows this was installed
 if (-not (Test-Path "C:\Windows\Temp\Logs\Bios"))
 {
@@ -84,15 +97,7 @@ if ($Manufacturer -eq 'HP')
     if ($HPPar1 -eq "BushBush")
     {
         Write-Output "Detect BIOS PW Error"
-        Stop-Transcript
-        Rename-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log" -NewName "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.NOK"
-    
-        if ((Test-Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log"))
-        {
-            Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log" -Force
-        }
-
-        [Environment]::Exit(1)
+        ForceErr
     }
     $AllBiosSettings = Get-WmiObject -class HP_BiosEnumeration -namespace root\hp\InstrumentedBios
     $BiosSettings = $AllBiosSettings | Select-Object name,CurrentValue
@@ -125,15 +130,8 @@ if ($Manufacturer -eq 'HP')
                         Write-Output $Setting
                         Write-Output $value
                         Write-Output "Error Setting Bios Value"
-                        Stop-Transcript
-                        Rename-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log" -NewName "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.NOK"
-    
-                        if ((Test-Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log"))
-                        {
-                            Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log" -Force
-                        }
-
-                        [Environment]::Exit(1)
+                        
+                        ForceErr
                     }
                     Else
                     {
@@ -149,7 +147,8 @@ Else
 {
     Write-Output "Skip Update not HP Model"
     Stop-Transcript
-    [Environment]::Exit(0)
+    exit 0
 }
 
 Stop-Transcript
+exit 0

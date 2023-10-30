@@ -40,6 +40,19 @@ If(($Interface.SetBIOSSetting("Setup Password","<utf-16/>" + $new,"<utf-16/>" + 
 Return "BushBush"
 }
 
+function ForceErr
+{
+    Stop-Transcript
+    Rename-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log" -NewName "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.NOK"
+    
+    if ((Test-Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log"))
+    {
+        Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log" -Force
+    }
+
+    exit 13    
+}
+
 # Create a tag file just so Intune knows this was installed
 if (-not (Test-Path "C:\Windows\Temp\Logs\Bios"))
 {
@@ -74,60 +87,61 @@ Write-Host "Begin"
 #$VerbosePreference = 'Continue'
 #$InformationPreference = 'Continue'
 
-
-$Manufacturer = Manufacturer  
-# HP BIOS Block
-if ($Manufacturer -eq 'HP')
+try
 {
-    write-host "Start Bios Update Process"
-    $HPPar1 = HPBios
-    if ($HPPar1 -eq "BushBush")
-    {
-        Write-Output "Detect BIOS PW Error"
-        Stop-Transcript
-        Rename-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log" -NewName "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.NOK"
-
-        if ((Test-Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log"))
+    $Manufacturer = Manufacturer
+    # HP BIOS Block
+    if ($Manufacturer -eq 'HP')
+    {                                                                                                                                {
+        write-host "Start Bios Update Process"
+        $HPPar1 = HPBios
+        if ($HPPar1 -eq "BushBush")
         {
-            Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log" -Force
+            Write-Output "Detect BIOS PW Error"
+            ForceErr
         }
 
-        [Environment]::Exit(1)
-    }
+        Import-Module HP.ClientManagement -Force -ErrorAction SilentlyContinue
 
-    Import-Module HP.ClientManagement -Force -ErrorAction SilentlyContinue
+        # Get Install Version
+        $BiosVersion = Get-HPBIOSVersion
+        # Get Repository Latest Version
+        $BiosVersionLatest = (Get-HPBIOSUpdates -Latest).ver
 
-    # Get Install Version
-    $BiosVersion = Get-HPBIOSVersion
-    # Get Repository Latest Version
-    $BiosVersionLatest = (Get-HPBIOSUpdates -Latest).ver
+        if ($BiosVersionLatest -NE $BiosVersion)
+        {
+            $BIOSCheck = Get-HPBIOSUpdates -Check
 
-    if ($BiosVersionLatest -NE $BiosVersion)
-    {
-        $BIOSCheck = Get-HPBIOSUpdates -Check
-
-        if ($BIOSCheck -eq $True)
-        { 
-            # Update Bios 
-            Write-host "Update Bios on computer" 
-            Get-HPBIOSUpdates -Flash -BitLocker Suspend -Force -Overwrite -Password $HPPar1 -Quiet -Yes
-            write-host "Force exit code for hard reboot"
+            if ($BIOSCheck -eq $True)
+            { 
+                # Update Bios 
+                Write-host "Update Bios on computer" 
+                Get-HPBIOSUpdates -Flash -BitLocker Suspend -Force -Overwrite -Password $HPPar1 -Quiet -Yes
+                write-host "Force exit code for hard reboot"
+                Stop-Transcript
+                exit 1641
+            } 
+        }
+        Else
+        {
+            Write-Output "Same Bios Version"
             Stop-Transcript
-            [Environment]::Exit(1641)
-        } 
+            exit 0
+        }
     }
     Else
     {
-        Write-Output "Same Bios Version"
+        Write-Output "Skip Update not HP Model"
         Stop-Transcript
-        [Environment]::Exit(0)
+        exit 0
     }
+
 }
-Else
+}
+Catch
 {
-    Write-Output "Skip Update not HP Model"
-    Stop-Transcript
-    [Environment]::Exit(0)
+    ForceErr
 }
 
 Stop-Transcript
+exit 0

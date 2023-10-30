@@ -14,6 +14,19 @@ write-host $Manufacturer -ForegroundColor Green
 Return $Manufacturer
 }
 
+function ForceErr
+{
+    Stop-Transcript
+    Rename-Item -Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Update.log" -NewName "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Update.NOK"
+    
+    if ((Test-Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Update.log"))
+    {
+        Remove-Item -Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Update.log" -Force
+    }
+
+    exit 13    
+}
+
 # If we are running as a 32-bit process on an x64 system, re-launch as a 64-bit process
 if ("$env:PROCESSOR_ARCHITEW6432" -ne "ARM64")
 {
@@ -54,115 +67,126 @@ Write-Host "Begin"
 
 Write-Host "Start Bios Update Process"
 
-$Manufacturer = Manufacturer
-
-if ($Manufacturer -eq 'LENOVO')
+try
 {
-    Write-Host "Install Lenovo PS Module"
-    Install-Module -Name LSUClient -Force
-    Import-Module -Name LSUClient
+    $Manufacturer = Manufacturer
 
-    #$drvlist = Get-LSUpdate -All -Model 10FL | Where-Object { $_.Installer.Unattended }
-    #$drvlist | Save-LSUpdate -Path C:\Windows\Temp\Bios\Lenovo -ShowProgress
-    Write-Host "Get Lenovo Update from WEB"
-    $drvlist = Get-LSUpdate -all | Where-Object {-not $_.IsInstalled }
-    $BiosUpdate = $null
-
-    foreach ($item in $drvlist)
+    if ($Manufacturer -eq 'LENOVO')
     {
-        if (($item.type) -like "*BIOS*")
+        Write-Host "Install PackageProvider Nuget"
+        Install-PackageProvider -Name NuGet -Force
+        Write-Host "Install Lenovo PS Module"
+        Install-Module -Name LSUClient -Force
+        Import-Module -Name LSUClient
+
+        #$drvlist = Get-LSUpdate -All -Model 10FL | Where-Object { $_.Installer.Unattended }
+        #$drvlist | Save-LSUpdate -Path C:\Windows\Temp\Bios\Lenovo -ShowProgress
+        Write-Host "Get Lenovo Update from WEB"
+        $drvlist = Get-LSUpdate -all | Where-Object {-not $_.IsInstalled }
+        Write-Host $drvlist
+        $BiosUpdate = $null
+
+        foreach ($item in $drvlist)
         {
-        write-host "Check for BIOS Update"
-        $BiosUpdate = $item
+            if (($item.type) -like "*BIOS*")
+            {
+                write-host "Check for BIOS Update"
+                $BiosUpdate = $item
+            }
+        }
+
+        if ($BiosUpdate -EQ $null)
+        {
+            $ToDo = "Nothing to Do - Bios Update"
+            Write-Output $ToDo
+            Stop-Transcript
+            exit 0
+        }
+        else
+        {
+            #$BiosUpdate | Install-LSUpdate -Verbose
+            write-host "Start Bios update on computer"
+            Write-Host $BiosUpdate
+            $BiosUpdate | Save-LSUpdate -Path C:\Windows\Temp\Bios\Lenovo -ShowProgress
+
+            $List = Get-ChildItem -Path C:\Windows\Temp\Bios\Lenovo -Recurse -Filter *.exe
+
+            $program = $list.FullName
+            $arg = "/verysilent /norestart"
+
+            $run = ( Start-Process $program -ArgumentList $arg -PassThru )
+
+            Start-Sleep -Seconds 5
+
+            Get-Process -Name Winuptp -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+
+            if ((Test-Path "C:\SWTOOLS"))
+            {
+                $flash = Get-ChildItem -Path C:\SWTOOLS -Recurse -Filter *.cmd
+
+                foreach ($item in $flash)
+                {
+                    if ($Item.name -like "*quiet*")
+                    {
+                        Set-Location ($item.Directory).FullName
+
+                        $run = ( Start-Process -Wait $item.name -PassThru) 
+
+                        Set-Location c:\
+
+                        Remove-Item -Path C:\SWTOOLS -Force -Recurse
+                        Remove-Item -Path C:\Windows\Temp\Bios\Lenovo -Force -Recurse
+
+                        write-host "Exit with hard reboot"
+
+                        Stop-Transcript
+
+                        exit 1641
+                    }
+                }
+            }
+
+            if ((Test-Path "C:\Drivers"))
+            {
+                write-host "Start bios update om computer"
+
+                $flash = Get-ChildItem -Path C:\Drivers -Recurse -Filter *.exe
+
+                foreach ($item in $flash)
+                {
+                    if ($Item.name -eq "winuptp64.exe")
+                    {
+                        Set-Location ($item.Directory).FullName
+                        $arg = "-s"
+
+                        $run = ( Start-Process -Wait $item.name -ArgumentList $arg -PassThru) 
+
+                        Set-Location c:\
+
+                        Remove-Item -Path C:\Drivers -Force -Recurse
+                        Remove-Item -Path C:\Windows\Temp\Bios\Lenovo -Force -Recurse
+
+                        write-host "Exit with hard reboot"
+
+                        Stop-Transcript
+
+                        exit 1641
+
+                    }
+                }
+            }
         }
     }
-
-    if ($BiosUpdate -EQ $null)
+    Else
     {
-        $ToDo = "Nothing to Do - Bios Update"
-        Write-Output $ToDo
+        Write-Output "Skip Update not Lenovo Model"
         Stop-Transcript
-        [Environment]::Exit(0)
-    }
-    else
-    {
-        #$BiosUpdate | Install-LSUpdate -Verbose
-        write-host "Start Bios update on computer"
-        $BiosUpdate | Save-LSUpdate -Path C:\Windows\Temp\Bios\Lenovo -ShowProgress
-
-        $List = Get-ChildItem -Path C:\Windows\Temp\Bios\Lenovo -Recurse -Filter *.exe
-
-        $program = $list.FullName
-        $arg = "/verysilent /norestart"
-
-        $run = ( Start-Process $program -ArgumentList $arg -PassThru )
-
-        Start-Sleep -Seconds 5
-
-        Get-Process -Name Winuptp -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-
-        if ((Test-Path "C:\SWTOOLS"))
-        {
-            $flash = Get-ChildItem -Path C:\SWTOOLS -Recurse -Filter *.cmd
-
-            foreach ($item in $flash)
-            {
-                if ($Item.name -like "*quiet*")
-                {
-                    Set-Location ($item.Directory).FullName
-
-                    $run = ( Start-Process -Wait $item.name -PassThru) 
-
-                    Set-Location c:\
-
-                    Remove-Item -Path C:\SWTOOLS -Force -Recurse
-                    Remove-Item -Path C:\Windows\Temp\Bios\Lenovo -Force -Recurse
-
-                    write-host "Exit with hard reboot"
-
-                    Stop-Transcript
-
-                    [Environment]::Exit(1641)
-                }
-            }
-        }
-
-        if ((Test-Path "C:\Drivers"))
-        {
-            write-host "Start bios update om computer"
-
-            $flash = Get-ChildItem -Path C:\Drivers -Recurse -Filter *.exe
-
-            foreach ($item in $flash)
-            {
-                if ($Item.name -eq "winuptp64.exe")
-                {
-                    Set-Location ($item.Directory).FullName
-                    $arg = "-s"
-
-                    $run = ( Start-Process -Wait $item.name -ArgumentList $arg -PassThru) 
-
-                    Set-Location c:\
-
-                    Remove-Item -Path C:\Drivers -Force -Recurse
-                    Remove-Item -Path C:\Windows\Temp\Bios\Lenovo -Force -Recurse
-
-                    write-host "Exit with hard reboot"
-
-                    Stop-Transcript
-
-                    [Environment]::Exit(1641)
-
-                }
-            }
-        }
+        exit 0
     }
 }
-Else
+catch
 {
-    Write-Output "Skip Update not Lenovo Model"
-    Stop-Transcript
-    [Environment]::Exit(0)
+    ForceErr
 }
-
 Stop-Transcript
+exit 0

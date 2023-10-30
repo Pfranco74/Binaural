@@ -86,7 +86,7 @@ try
             $ToDo = "Nothing to Do - Bios Update"
             Write-Output $ToDo
             Stop-Transcript
-            exit 0    
+            [Environment]::Exit(0)
         }
         else
         {
@@ -126,7 +126,7 @@ try
 
                         Stop-Transcript
 
-                        exit 1641
+                        [Environment]::Exit(1641)
                     }
                 }
             }
@@ -155,7 +155,7 @@ try
 
                         Stop-Transcript
 
-                        exit 1641
+                        [Environment]::Exit(1641)
 
                     }
                 }
@@ -166,7 +166,7 @@ try
     {
         Write-Output "Skip Update not Lenovo Model"
         Stop-Transcript
-        exit 0
+        [Environment]::Exit(0)
     }
 }
 Catch
@@ -180,7 +180,7 @@ Catch
         Remove-Item -Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Update.log" -Force
     }
 
-    exit 1
+    [Environment]::Exit(1)
 }
 
 Stop-Transcript

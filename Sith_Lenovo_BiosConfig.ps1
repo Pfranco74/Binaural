@@ -91,7 +91,7 @@ if ($Manufacturer -eq 'LENOVO')
             Remove-Item -Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.log" -Force
         }
 
-        exit 1        
+        [Environment]::Exit(1)
     }
     Write-Host "Start Bios Config Process"
 
@@ -146,7 +146,7 @@ if ($Manufacturer -eq 'LENOVO')
                             Remove-Item -Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.log" -Force
                         }
 
-                        exit 1
+                        [Environment]::Exit(1)
                     }
                     Else
                     {
@@ -171,7 +171,7 @@ if ($Manufacturer -eq 'LENOVO')
                 Remove-Item -Path "C:\Windows\Temp\Logs\Bios\Lenovo_BIOS_Config.log" -Force
             }
                         
-            exit 1
+            [Environment]::Exit(1)
 
         }
         Else
@@ -179,7 +179,7 @@ if ($Manufacturer -eq 'LENOVO')
             $ToDo = "Successfuly Save Bios Settings"
             Stop-Transcript            
             Write-Output $ToDo
-            exit 0
+            [Environment]::Exit(0)
         }
     }
 }
@@ -187,7 +187,7 @@ Else
 {
     Write-Output "Skip Update not LENOVO Model"
     Stop-Transcript
-    exit 0
+    [Environment]::Exit(0)
 }
 
 Stop-Transcript

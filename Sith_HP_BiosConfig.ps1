@@ -92,7 +92,7 @@ if ($Manufacturer -eq 'HP')
             Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log" -Force
         }
 
-        exit 1        
+        [Environment]::Exit(1)
     }
     $AllBiosSettings = Get-WmiObject -class HP_BiosEnumeration -namespace root\hp\InstrumentedBios
     $BiosSettings = $AllBiosSettings | Select-Object name,CurrentValue
@@ -133,7 +133,7 @@ if ($Manufacturer -eq 'HP')
                             Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log" -Force
                         }
 
-                        exit 1
+                        [Environment]::Exit(1)
                     }
                     Else
                     {
@@ -149,7 +149,7 @@ Else
 {
     Write-Output "Skip Update not HP Model"
     Stop-Transcript
-    exit 0
+    [Environment]::Exit(0)
 }
 
 Stop-Transcript

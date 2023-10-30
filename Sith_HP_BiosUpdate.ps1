@@ -93,7 +93,7 @@ try
                 Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log" -Force
             }
 
-            exit 1        
+            [Environment]::Exit(1)
         }
 
         Import-Module HP.ClientManagement -Force -ErrorAction SilentlyContinue
@@ -114,21 +114,21 @@ try
                 Get-HPBIOSUpdates -Flash -BitLocker Suspend -Force -Overwrite -Password $HPPar1 -Quiet -Yes
                 write-host "Force exit code for hard reboot"
                 Stop-Transcript
-                exit 1641            
+                [Environment]::Exit(1641)
             }     
         }
         Else
         {
             Write-Output "Same Bios Version"
             Stop-Transcript
-            exit 0
+            [Environment]::Exit(0)
         }
     }
     Else
     {
         Write-Output "Skip Update not HP Model"
         Stop-Transcript
-        exit 0
+        [Environment]::Exit(0)
     }
 }
 catch
@@ -142,8 +142,7 @@ catch
         Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log" -Force
     }
 
-
-    exit 1
+    [Environment]::Exit(1)
 }
 
 Stop-Transcript

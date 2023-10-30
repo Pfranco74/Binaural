@@ -2,42 +2,42 @@
 
 function Manufacturer
 {
-$Manufacturer = ((Get-CimInstance -ClassName Win32_ComputerSystem).Manufacturer).toupper()
+    $Manufacturer = ((Get-CimInstance -ClassName Win32_ComputerSystem).Manufacturer).toupper()
 
-if ($Manufacturer -eq 'HEWLETT-PACKARD')
-{
-$Manufacturer = 'HP'
-}
-write-host $Manufacturer -ForegroundColor Green
-Return $Manufacturer
+    if ($Manufacturer -eq 'HEWLETT-PACKARD')
+    {
+        $Manufacturer = 'HP'
+    }
+    write-host $Manufacturer -ForegroundColor Green
+    Return $Manufacturer
 }
 
 function HPBios
 {
-$InterFacePW = Get-WmiObject -class HP_BiosSetting -namespace root\hp\InstrumentedBios
-$InterFace = Get-WmiObject -class HP_BiosSettingInterface -namespace root\hp\InstrumentedBios
-$check = ($InterFacepw | Where-Object Name -eq "Setup Password").isset
-$HPPar = @("Mill2013","Mill2009")
-$old = $null
+    $InterFacePW = Get-WmiObject -class HP_BiosSetting -namespace root\hp\InstrumentedBios
+    $InterFace = Get-WmiObject -class HP_BiosSettingInterface -namespace root\hp\InstrumentedBios
+    $check = ($InterFacepw | Where-Object Name -eq "Setup Password").isset
+    $HPPar = @("Mill2013","Mill2009")
+    $old = $null
 
-foreach ($item in $HPPar)
-{
+    foreach ($item in $HPPar)
+    {
 
-if(($Interface.SetBIOSSetting("Setup Password","<utf-16/>" + $item,"<utf-16/>" + $item)).Return -eq 0)
-{
-$old = $item
-Return $item
-} 
-}
-if ($old -ne $null)
-{
-If(($Interface.SetBIOSSetting("Setup Password","<utf-16/>" + $new,"<utf-16/>" + $old)).Return -eq 0)
-{
-#Return $new 
-}   
-}
+        if(($Interface.SetBIOSSetting("Setup Password","<utf-16/>" + $item,"<utf-16/>" + $item)).Return -eq 0)
+        {
+            $old = $item
+            Return $item
+        }
+    }
+    if ($old -ne $null)
+    {
+        If(($Interface.SetBIOSSetting("Setup Password","<utf-16/>" + $new,"<utf-16/>" + $old)).Return -eq 0)
+        {
+            #Return $new 
+        }   
+    }
 
-Return "BushBush"
+    Return "BushBush"
 }
 
 function ForceErr
@@ -92,15 +92,15 @@ try
     $Manufacturer = Manufacturer
     # HP BIOS Block
     if ($Manufacturer -eq 'HP')
-    {                                                                                                                                {
+    {
         write-host "Start Bios Update Process"
         $HPPar1 = HPBios
         if ($HPPar1 -eq "BushBush")
         {
             Write-Output "Detect BIOS PW Error"
             ForceErr
-        }
-
+        }                
+        
         Import-Module HP.ClientManagement -Force -ErrorAction SilentlyContinue
 
         # Get Install Version
@@ -128,6 +128,7 @@ try
             Stop-Transcript
             exit 0
         }
+
     }
     Else
     {
@@ -135,8 +136,6 @@ try
         Stop-Transcript
         exit 0
     }
-
-}
 }
 Catch
 {

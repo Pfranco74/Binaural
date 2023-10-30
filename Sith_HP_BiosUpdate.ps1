@@ -2,147 +2,132 @@
 
 function Manufacturer
 {
-    $Manufacturer = ((Get-CimInstance -ClassName Win32_ComputerSystem).Manufacturer).toupper()
-    
-    if ($Manufacturer -eq 'HEWLETT-PACKARD')
-    {
-        $Manufacturer = 'HP'
-    }
-    write-host $Manufacturer -ForegroundColor Green
-    Return $Manufacturer
+$Manufacturer = ((Get-CimInstance -ClassName Win32_ComputerSystem).Manufacturer).toupper()
+
+if ($Manufacturer -eq 'HEWLETT-PACKARD')
+{
+$Manufacturer = 'HP'
+}
+write-host $Manufacturer -ForegroundColor Green
+Return $Manufacturer
 }
 
 function HPBios
 {
-    $InterFacePW = Get-WmiObject -class HP_BiosSetting -namespace root\hp\InstrumentedBios
-    $InterFace = Get-WmiObject -class HP_BiosSettingInterface -namespace root\hp\InstrumentedBios
-    $check = ($InterFacepw | Where-Object Name -eq "Setup Password").isset
-    $HPPar = @("Mill2013","Mill2009")
-    $old = $null
+$InterFacePW = Get-WmiObject -class HP_BiosSetting -namespace root\hp\InstrumentedBios
+$InterFace = Get-WmiObject -class HP_BiosSettingInterface -namespace root\hp\InstrumentedBios
+$check = ($InterFacepw | Where-Object Name -eq "Setup Password").isset
+$HPPar = @("Mill2013","Mill2009")
+$old = $null
 
-    foreach ($item in $HPPar)
-    {
+foreach ($item in $HPPar)
+{
 
-        if(($Interface.SetBIOSSetting("Setup Password","<utf-16/>" + $item,"<utf-16/>" + $item)).Return -eq 0)
-        {
-            $old = $item
-            Return $item
-        } 
-    }
-    if ($old -ne $null)
-    {
-        If(($Interface.SetBIOSSetting("Setup Password","<utf-16/>" + $new,"<utf-16/>" + $old)).Return -eq 0)
-        {
-            #Return $new 
-        }           
-    }
+if(($Interface.SetBIOSSetting("Setup Password","<utf-16/>" + $item,"<utf-16/>" + $item)).Return -eq 0)
+{
+$old = $item
+Return $item
+} 
+}
+if ($old -ne $null)
+{
+If(($Interface.SetBIOSSetting("Setup Password","<utf-16/>" + $new,"<utf-16/>" + $old)).Return -eq 0)
+{
+#Return $new 
+}   
+}
 
-    Return "BushBush"
+Return "BushBush"
 }
 
 # Create a tag file just so Intune knows this was installed
 if (-not (Test-Path "C:\Windows\Temp\Logs\Bios"))
 {
-    Mkdir "C:\Windows\Temp\Logs\Bios"
+Mkdir "C:\Windows\Temp\Logs\Bios"
 }
 
 if ((Test-Path "C:\Windows\Temp\Logs\Bios\HP_Bios_Update.log"))
 {
-    Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_Bios_Update.log" -Force
+Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_Bios_Update.log" -Force
 }
 
 if ((Test-Path "C:\Windows\Temp\Logs\Bios\HP_Bios_Update.nok"))
 {
-    Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_Bios_Update.nok" -Force
+Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_Bios_Update.nok" -Force
 }
 
 # If we are running as a 32-bit process on an x64 system, re-launch as a 64-bit process
 if ("$env:PROCESSOR_ARCHITEW6432" -ne "ARM64")
 {
-    if (Test-Path "$($env:WINDIR)\SysNative\WindowsPowerShell\v1.0\powershell.exe")
-    {
-        & "$($env:WINDIR)\SysNative\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy bypass -NoProfile -File "$PSCommandPath" -Reboot $Reboot -RebootTimeout $RebootTimeout
-        Exit $lastexitcode
-    }
+if (Test-Path "$($env:WINDIR)\SysNative\WindowsPowerShell\v1.0\powershell.exe")
+{
+& "$($env:WINDIR)\SysNative\WindowsPowerShell\v1.0\powershell.exe" -ExecutionPolicy bypass -NoProfile -File "$PSCommandPath" -Reboot $Reboot -RebootTimeout $RebootTimeout
+Exit $lastexitcode
+}
 }
 
 
 # Start logging
 Start-Transcript "C:\Windows\Temp\Logs\Bios\HP_Bios_Update.log"
 Write-Host "Begin"
-$DebugPreference = 'Continue'
-$VerbosePreference = 'Continue'
-$InformationPreference = 'Continue'
+#$DebugPreference = 'Continue'
+#$VerbosePreference = 'Continue'
+#$InformationPreference = 'Continue'
 
-try
+
+$Manufacturer = Manufacturer  
+# HP BIOS Block
+if ($Manufacturer -eq 'HP')
 {
-    $Manufacturer = Manufacturer  
-    # HP BIOS Block
-    if ($Manufacturer -eq 'HP')
+    write-host "Start Bios Update Process"
+    $HPPar1 = HPBios
+    if ($HPPar1 -eq "BushBush")
     {
-        write-host "Start Bios Update Process"
-        $HPPar1 = HPBios
-        if ($HPPar1 -eq "BushBush")
+        Write-Output "Detect BIOS PW Error"
+        Stop-Transcript
+        Rename-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log" -NewName "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.NOK"
+
+        if ((Test-Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log"))
         {
-            Write-Output "Detect BIOS PW Error"
+            Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log" -Force
+        }
+
+        [Environment]::Exit(1)
+    }
+
+    Import-Module HP.ClientManagement -Force -ErrorAction SilentlyContinue
+
+    # Get Install Version
+    $BiosVersion = Get-HPBIOSVersion
+    # Get Repository Latest Version
+    $BiosVersionLatest = (Get-HPBIOSUpdates -Latest).ver
+
+    if ($BiosVersionLatest -NE $BiosVersion)
+    {
+        $BIOSCheck = Get-HPBIOSUpdates -Check
+
+        if ($BIOSCheck -eq $True)
+        { 
+            # Update Bios 
+            Write-host "Update Bios on computer" 
+            Get-HPBIOSUpdates -Flash -BitLocker Suspend -Force -Overwrite -Password $HPPar1 -Quiet -Yes
+            write-host "Force exit code for hard reboot"
             Stop-Transcript
-            Rename-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log" -NewName "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.NOK"
-    
-            if ((Test-Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log"))
-            {
-                Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log" -Force
-            }
-
-            [Environment]::Exit(1)
-        }
-
-        Import-Module HP.ClientManagement -Force -ErrorAction SilentlyContinue
-
-        # Get Install Version
-        $BiosVersion = Get-HPBIOSVersion
-        # Get Repository Latest Version
-        $BiosVersionLatest = (Get-HPBIOSUpdates -Latest).ver
-
-        if ($BiosVersionLatest -NE $BiosVersion)
-        {
-            $BIOSCheck = Get-HPBIOSUpdates -Check
-
-            if ($BIOSCheck -eq $True)
-            {     
-                # Update Bios 
-                Write-host "Update Bios on computer"     
-                Get-HPBIOSUpdates -Flash -BitLocker Suspend -Force -Overwrite -Password $HPPar1 -Quiet -Yes
-                write-host "Force exit code for hard reboot"
-                Stop-Transcript
-                [Environment]::Exit(1641)
-            }     
-        }
-        Else
-        {
-            Write-Output "Same Bios Version"
-            Stop-Transcript
-            [Environment]::Exit(0)
-        }
+            [Environment]::Exit(1641)
+        } 
     }
     Else
     {
-        Write-Output "Skip Update not HP Model"
+        Write-Output "Same Bios Version"
         Stop-Transcript
         [Environment]::Exit(0)
     }
 }
-catch
+Else
 {
-    Write-Output "Detect Error"
+    Write-Output "Skip Update not HP Model"
     Stop-Transcript
-    Rename-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log" -NewName "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.NOK"
-    
-    if ((Test-Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log"))
-    {
-        Remove-Item -Path "C:\Windows\Temp\Logs\Bios\HP_BIOS_Update.log" -Force
-    }
-
-    [Environment]::Exit(1)
+    [Environment]::Exit(0)
 }
 
 Stop-Transcript

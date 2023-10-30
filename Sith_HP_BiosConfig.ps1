@@ -70,9 +70,9 @@ if ("$env:PROCESSOR_ARCHITEW6432" -ne "ARM64")
 # Start logging
 Start-Transcript "C:\Windows\Temp\Logs\Bios\HP_BIOS_Config.log"
 Write-Host "Begin"
-$DebugPreference = 'Continue'
-$VerbosePreference = 'Continue'
-$InformationPreference = 'Continue'
+#$DebugPreference = 'Continue'
+#$VerbosePreference = 'Continue'
+#$InformationPreference = 'Continue'
 
 $Manufacturer = Manufacturer
 

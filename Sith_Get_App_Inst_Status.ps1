@@ -1,17 +1,25 @@
 ﻿cls
 $AllApp = $null
-$readfile = Get-Content -Path 'c:\Programdata\Microsoft\IntuneManagementExtension\Logs\IntuneManagementExtension.log'
-#$readfile = Get-Content -Path C:\Data\IntuneManagementExtension.log
+$getfile = Get-ChildItem -Path 'c:\Programdata\Microsoft\IntuneManagementExtension\Logs' -Filter Intune*.log
+#$getfile = Get-ChildItem -Path C:\Data\ -Filter Intune*.log
 #Write-host ""write-host "Apps to be install " -ForegroundColor Green
-foreach ($item in $readfile)
+
+foreach ($item in $getfile)
 {
-    if ($item -like "* In EspPhase: DeviceSetup. App*")
+    $readfile = Get-Content -path $item.FullName
+    foreach ($item1 in $readfile)
     {
-        $AppID = $item.Substring(60,40)
-        $AppNAme = ($item.Substring(128)).split("]")[0]
+        
+
+        if ($item1 -like "* In EspPhase: DeviceSetup. App*")
+        {
+        $AppID = $item1.Substring(60,40)
+        $AppNAme = ($item1.Substring(128)).split("]")[0]
         $AppInst = "AppID: " + $AppID + " AppName: " + $AppNAme       
         $AllApp = @($AppInst) + $AllApp
         #Write-Output $AppInst    
+    }
+
     }
 }
 
@@ -43,6 +51,7 @@ function HowLong ($start,$end)
         Return $TakeThat
     }
 }
+
 $AppDownloadStatus= $null
 $AppDownload = "Downloading app"
 $AppHash = 'Starts verifying encrypted hash'

@@ -64,12 +64,22 @@ $AppLaunch = "Launch Win32AppInstaller in machine session"
 foreach ($item in $readfile)
 {
     if (($item -like "*$AppDownload*") -and $AppDownloadStatus -eq $null)
-    {        
-        $timelog = ((($item.Split(" ")[7]).split("=")[-1]).split(".")[0]).substring(1,8)
-        $datelog = ((($item.Split(" ")[8]).split("=")[-1]).split(".")[0]).substring(1,10)
+    {     
+        if ($item.Split(" ")[7] -like "*time*")
+        {
+            $timelog = ((($item.Split(" ")[7]).split("=")[-1]).split(".")[0]).substring(1,8)
+            $datelog = ((($item.Split(" ")[8]).split("=")[-1]).split(".")[0]).substring(1,10)
+            $AppDownloadId = $Item.Substring(53,36)               
+        }   
+        else
+        {
+            $timelog = ((($item.Split(" ")[20]).split("=")[-1]).split(".")[0]).substring(1,8)
+            $datelog = ((($item.Split(" ")[21]).split("=")[-1]).split(".")[0]).substring(1,10)
+            $AppDownloadId = $Item.Substring(45,36)             
+        }
         $AppDownloadStatus = "Begin"
         $timestart = $timelog
-        $AppDownloadId = $Item.Substring(53,36)           
+        
                
     }
     
@@ -127,7 +137,7 @@ foreach ($item in $readfile)
         $takethat = HowLong $timestart $timeend
         $App = AppID $AppDownloadId $AppCtrl
         $AppCtrl = $App
-        if ($App -ne $null)
+        if (($App -ne $null) -and ($takethat -notlike "*-*"))
         {
             Write-Host $App -ForegroundColor Green  
             Write-Host $takethat            
@@ -140,7 +150,7 @@ $App = AppID $AppDownloadId
 if ($AppDownloadStatus -eq "Begin")
 {   
     Write-host ""
-    Write-Host $AppDownload -ForegroundColor Red
+    Write-Host $AppDownload -ForegroundColor Yellow
     Write-Host $logdate            
     write-host $App   
 }
@@ -148,7 +158,7 @@ if ($AppDownloadStatus -eq "Begin")
 if ($AppHashStatus -EQ "Begin")
 {
     Write-host ""
-    Write-Host $AppHash -ForegroundColor Red
+    Write-Host $AppHash -ForegroundColor Yellow
     Write-Host $logdate
     write-host $App   
 }
@@ -156,7 +166,7 @@ if ($AppHashStatus -EQ "Begin")
 if ($AppUnzippingStatus -EQ "Begin")
 {
     Write-host ""
-    Write-Host $AppUnzipping -ForegroundColor Red
+    Write-Host $AppUnzipping -ForegroundColor Yellow
     Write-Host $logdate
     write-host $App   
 }
@@ -164,7 +174,7 @@ if ($AppUnzippingStatus -EQ "Begin")
 if ($AppLaunchStatus -eq "Begin")
 {
     Write-host ""
-    Write-Host $AppLaunch -ForegroundColor Red
+    Write-Host $AppLaunch -ForegroundColor Yellow
     Write-Host $logdate
     write-host $App   
 }

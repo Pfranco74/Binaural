@@ -57,7 +57,8 @@ Write-Output $Reboot
 
 foreach ($item in $GETUPDATES)
 {
-    if ((($item.title).toupper() -like "*ETHERNET*") -or ($item.title).toupper() -like "*WIFI*" -OR ($item.title).toupper() -like "*WI-FI*")
+    #if ((($item.title).toupper() -like "*ETHERNET*") -or ($item.title).toupper() -like "*WIFI*" -OR ($item.title).toupper() -like "*WI-FI*")
+    if (($item.title).toupper() -like "*BUSHBUSH*")
     {
         $updateid = $item.Title
         Write-Output "$updateid not installed"

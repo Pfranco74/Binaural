@@ -48,7 +48,7 @@ Import-Module PSWindowsUpdate
 $ts = get-date -f "yyyy/MM/dd hh:mm:ss tt"
 Write-Output "$ts Installing updates."
 
-$GETUPDATES = Get-WindowsUpdate -AcceptAll -WindowsUpdate -UpdateType Software
+$GETUPDATES = Get-WindowsUpdate -AcceptAll -WindowsUpdate -UpdateType Software -IgnoreReboot
 $CheckNumberUpdates = $GETUPDATES.Count
 $UpdatetobeInstall = $GETUPDATES | select Title
 Write-Output "Detect $CheckNumberUpdates Updates"

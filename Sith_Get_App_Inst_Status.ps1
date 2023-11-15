@@ -1,7 +1,7 @@
 ﻿cls
 Remove-Variable * -ErrorAction SilentlyContinue
 $AllApp = $null
-$getfile = Get-ChildItem -Path 'c:\Programdata\Microsoft\IntuneManagementExtension\Logs' -Filter Intune*.log
+$getfile = Get-ChildItem -Path C:\ProgramData\Microsoft\IntuneManagementExtension\Logs -Filter Intune*.log
 #$getfile = Get-ChildItem -Path C:\Data\ -Filter Intune*.log
 #Write-host ""write-host "Apps to be install " -ForegroundColor Green
 
@@ -55,7 +55,7 @@ function HowLong ($start,$end)
 
 $AppDownloadStatus= $null
 $AppDownload = "Downloading app"
-$AppDownloadPER = "via DO, bytes"
+$AppDownloadPER = "via DO, bytes "
 $AppHash = 'Starts verifying encrypted hash'
 $AppHashStatus = $null
 $AppUnzippingStatus= $null
@@ -67,6 +67,8 @@ $timeend = $null
 
 foreach ($item in $readfile)
 {
+    
+    #write-host $item
     if (($item -like "*$AppDownload*") -and $AppDownloadStatus -eq $null)
     {     
         if ($item.Split(" ")[7] -like "*time*")
@@ -87,18 +89,6 @@ foreach ($item in $readfile)
                
     }
 
-    if (($item -like "*$AppDownloadPER*"))
-    {   
-        if (($item.Split("via do")[35] -notlike "*0/*") -and ($item.Split("via do")[35] -like "*/*"))
-        {
-            
-            [int32]$atual = ($item.Split("via do")[35]).Split("/")[0]
-            [int32]$total = ($item.Split("via do")[35]).Split("/")[1]
-            $downloadper = ($atual/$total).ToString("P")
-        }  
-        
-    }
-    
     if ($item -like "*Notified DO Service the job is complete*")
     {
         $timelog = ((($item.Split(" ")[6]).split("=")[-1]).split(".")[0]).substring(1,8)
@@ -159,7 +149,26 @@ foreach ($item in $readfile)
             Write-Host $takethat            
         }                   
     }
+
+    if (($item -like "*$AppDownloadPER*"))
+    {
+        $line = $item.Split(" ")
+
+        foreach ($item in $line)
+        {
+            if ($item -like "*/*")
+            {
+                $atual = $item.Split("/")[0]
+                $total = $item.Split("/")[-1]
+                if ($atual -ne 0)
+                {
+                    $downloadper = ($atual/$total).ToString("P")                    
+                }
+            }
+        }       
+    }
 }
+
 
 $App = AppID $AppDownloadId
 

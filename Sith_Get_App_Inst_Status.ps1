@@ -1,8 +1,8 @@
 ﻿cls
 Remove-Variable * -ErrorAction SilentlyContinue
 $AllApp = $null
-#$getfile = Get-ChildItem -Path 'c:\Programdata\Microsoft\IntuneManagementExtension\Logs' -Filter Intune*.log
-$getfile = Get-ChildItem -Path C:\Data\ -Filter Intune*.log
+$getfile = Get-ChildItem -Path 'c:\Programdata\Microsoft\IntuneManagementExtension\Logs' -Filter Intune*.log
+#$getfile = Get-ChildItem -Path C:\Data\ -Filter Intune*.log
 #Write-host ""write-host "Apps to be install " -ForegroundColor Green
 
 foreach ($item in $getfile)

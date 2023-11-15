@@ -8,6 +8,9 @@ Param(
 Process
 {
 
+cls
+Remove-Variable * -ErrorAction SilentlyContinue
+
 # If we are running as a 32-bit process on an x64 system, re-launch as a 64-bit process
 if ("$env:PROCESSOR_ARCHITEW6432" -ne "ARM64")
 {

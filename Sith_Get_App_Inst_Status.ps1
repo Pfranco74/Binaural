@@ -1,7 +1,8 @@
 ﻿cls
+Remove-Variable * -ErrorAction SilentlyContinue
 $AllApp = $null
-$getfile = Get-ChildItem -Path 'c:\Programdata\Microsoft\IntuneManagementExtension\Logs' -Filter Intune*.log
-#$getfile = Get-ChildItem -Path C:\Data\ -Filter Intune*.log
+#$getfile = Get-ChildItem -Path 'c:\Programdata\Microsoft\IntuneManagementExtension\Logs' -Filter Intune*.log
+$getfile = Get-ChildItem -Path C:\Data\ -Filter Intune*.log
 #Write-host ""write-host "Apps to be install " -ForegroundColor Green
 
 foreach ($item in $getfile)
@@ -54,12 +55,15 @@ function HowLong ($start,$end)
 
 $AppDownloadStatus= $null
 $AppDownload = "Downloading app"
+$AppDownloadPER = "via DO, bytes"
 $AppHash = 'Starts verifying encrypted hash'
 $AppHashStatus = $null
 $AppUnzippingStatus= $null
 $AppUnzipping = "Start unzipping"
 $AppLaunchStatus= $null
 $AppLaunch = "Launch Win32AppInstaller in machine session"
+$timestart = $null
+$timeend = $null
 
 foreach ($item in $readfile)
 {
@@ -81,6 +85,18 @@ foreach ($item in $readfile)
         $timestart = $timelog
         
                
+    }
+
+    if (($item -like "*$AppDownloadPER*"))
+    {   
+        if (($item.Split("via do")[35] -notlike "*0/*") -and ($item.Split("via do")[35] -like "*/*"))
+        {
+            
+            [int32]$atual = ($item.Split("via do")[35]).Split("/")[0]
+            [int32]$total = ($item.Split("via do")[35]).Split("/")[1]
+            $downloadper = ($atual/$total).ToString("P")
+        }  
+        
     }
     
     if ($item -like "*Notified DO Service the job is complete*")
@@ -153,6 +169,7 @@ if ($AppDownloadStatus -eq "Begin")
     Write-Host $AppDownload -ForegroundColor Yellow
     Write-Host $logdate            
     write-host $App   
+    Write-Host $downloadper
 }
 
 if ($AppHashStatus -EQ "Begin")

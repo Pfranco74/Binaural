@@ -60,8 +60,6 @@ $AppUnzippingStatus= $null
 $AppUnzipping = "Start unzipping"
 $AppLaunchStatus= $null
 $AppLaunch = "Launch Win32AppInstaller in machine session"
-$timestart = $null
-$timeend = $null
 
 foreach ($item in $readfile)
 {

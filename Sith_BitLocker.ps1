@@ -63,6 +63,29 @@ $WindowsVer = Get-WmiObject -Query 'select * from Win32_OperatingSystem where (V
 $BitLockerReadyDrive = Get-BitLockerVolume -MountPoint $env:SystemDrive -ErrorAction SilentlyContinue
 $BitLockerDecrypted = Get-BitLockerVolume -MountPoint $env:SystemDrive | where {$_.VolumeStatus -eq "FullyDecrypted"} -ErrorAction SilentlyContinue
 $BLVS = Get-BitLockerVolume | Where-Object {$_.KeyProtector | Where-Object {$_.KeyProtectorType -eq 'RecoveryPassword'}} -ErrorAction SilentlyContinue
+$BitLockerEncrypted = Get-BitLockerVolume -MountPoint $env:SystemDrive | where {$_.VolumeStatus -ne "FullyDecrypted"} -ErrorAction SilentlyContinue
+
+
+#start Decrypting
+if ($BitLockerEncrypted)
+{
+    LogWrite "Start Decryting"
+    Disable-BitLocker -MountPoint $env:SystemDrive -Confirm:$false 
+
+    # don't quit till fully encrypted
+    do
+    {
+        $BitLockerOSVolume = Get-BitLockerVolume -MountPoint $env:SystemDrive
+        $percent =  $BitLockerOSVolume.EncryptionPercentage
+        LogWrite "Percentage Encrypted: '$percent'%."
+        Start-Sleep -Seconds 13            
+    }
+    
+    until ($BitLockerOSVolume.EncryptionPercentage -eq 0)
+    $BitLockerDecrypted = Get-BitLockerVolume -MountPoint $env:SystemDrive | where {$_.VolumeStatus -eq "FullyDecrypted"} -ErrorAction SilentlyContinue
+}
+
+
 
 #Step 0 - Copy files
 $TempDirectory = "C:\Windows\Temp\BitLocker"

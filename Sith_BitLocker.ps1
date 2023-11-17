@@ -120,7 +120,9 @@ try
     $BitLockerRegLoc = 'HKLM:\SOFTWARE\Policies\Microsoft'
     if (Test-Path "$BitLockerRegLoc\FVE")
     {
-        LogWrite '$BitLockerRegLoc\FVE Key already exists'
+        LogWrite '$BitLockerRegLoc\FVE Key already exists'        
+        Remove-Item -Path "$BitLockerRegLoc\FVE"
+        New-Item -Path "$BitLockerRegLoc" -Name 'FVE'
     }
     Else
     {

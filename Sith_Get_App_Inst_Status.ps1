@@ -1,8 +1,9 @@
 ﻿cls
 Remove-Variable * -ErrorAction SilentlyContinue
 $AllApp = $null
-$getfile = Get-ChildItem -Path C:\ProgramData\Microsoft\IntuneManagementExtension\Logs -Filter Intune*.log
-#$getfile = Get-ChildItem -Path C:\Data\ -Filter Intune*.log
+$count = $null
+#$getfile = Get-ChildItem -Path C:\ProgramData\Microsoft\IntuneManagementExtension\Logs -Filter Intune*.log
+$getfile = Get-ChildItem -Path C:\Data\ -Filter Intune*.log
 #Write-host ""write-host "Apps to be install " -ForegroundColor Green
 
 foreach ($item in $getfile)
@@ -146,7 +147,8 @@ foreach ($item in $readfile)
         if (($App -ne $null) -and ($takethat -notlike "*-*"))
         {
             Write-Host $App -ForegroundColor Green  
-            Write-Host $takethat            
+            Write-Host $takethat    
+            $count = $count + 1        
         }                   
     }
 
@@ -204,3 +206,7 @@ if ($AppLaunchStatus -eq "Begin")
     Write-Host $logdate
     write-host $App   
 }
+
+$howmanyapps = ($AllApp.Count) -1
+write-host ""
+Write-Host "Aplicacoes $count de $howmanyapps instaladas" -ForegroundColor Yellow

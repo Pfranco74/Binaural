@@ -1,0 +1,64 @@
+$TempDirectory = "C:\Windows\Temp\Drivers\Lenovo"
+$LogDirectory = "C:\Windows\Temp\Logs\Drivers"
+$LogFile = "C:\Windows\Temp\Logs\Drivers\Lenovo_Drivers_Update.log"
+$Repo = "C:\Windows\Temp\Drivers\Lenovo\Repo"
+
+
+ #Create a tag file just so Intune knows this was installed
+if (-not (Test-Path $LogDirectory))
+{
+    Mkdir $LogDirectory
+}
+
+if (-not (Test-Path $TempDirectory))
+{
+    Mkdir $TempDirectory
+}
+
+# Start logging
+Start-Transcript $LogFile
+Write-Host "Begin"
+#$DebugPreference = 'Continue'
+#$VerbosePreference = 'Continue'
+#$InformationPreference = 'Continue'
+
+Write-Host "Start Drivers Update Process"
+
+$Model = (Get-CimInstance -ClassName CIM_ComputerSystem -ErrorAction SilentlyContinue -Verbose:$false).Model
+$Model = $Model.Trim()
+
+if ($Model.Length -gt 5) 
+{
+    $Model = $Model.Substring(0, 4)
+}
+
+if ($Model -notmatch '^\w{4,5}$') 
+{
+    throw "Could not parse computer model number. This may not be a Lenovo computer, or an unsupported model."
+}
+
+Write-Verbose "Lenovo Model is: $Model"
+
+$ModelXmlPath = Join-Path -Path $Repo -ChildPath "${Model}_Win$($CachedHardwareTable._OS).xml"
+$COMPUTERXML = Get-Content -LiteralPath $ModelXmlPath -Raw
+[xml]$PARSEDXML = $COMPUTERXML -replace "^$UTF8ByteOrderMark"
+
+
+
+foreach ($Package in $PARSEDXML.packages.package) 
+{
+WRITE-HOST $Package.location
+            $PathInfo = Get-PackagePathInfo -Path $Package.location -BasePath $Repository
+            if ($PathInfo.Valid) {
+                [PackageXmlPointer]::new(
+                    $PathInfo.AbsoluteLocation,
+                    $PathInfo.Type,
+                    'XmlDefinition',
+                    $Package.checksum.'#text',
+                    0,
+                    $Package.category
+                )
+            } else {
+                Write-Error "The package definition at $($Package.location) could not be found or accessed"
+            }
+        }

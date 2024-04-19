@@ -79,9 +79,9 @@ try
     foreach ($item in $GETUPDATES)
     {
         #if ((($item.title).toupper() -like "*ETHERNET*") -or ($item.title).toupper() -like "*WIFI*" -OR ($item.title).toupper() -like "*WI-FI*")
-        if (($item).toupper() -notlike $searchbuild) 
+        if (($item.title).toupper() -notlike $searchbuild) 
         {
-            if (($item).toupper() -notlike $searchVersion.ToUpper())           
+            if (($item.title).toupper() -notlike $searchVersion.ToUpper())           
             {
                 $updateid = $item.Title
                 $updatereboot = $item.RebootRequired

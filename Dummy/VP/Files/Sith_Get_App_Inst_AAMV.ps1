@@ -1,4 +1,4 @@
-﻿cls
+cls
 Remove-Variable * -ErrorAction SilentlyContinue
 $AllApp = $null
 $count = $null
@@ -102,7 +102,7 @@ $completeapp2 = "resulted in action status: Success and detection state: Detecte
 $endapp = "<![LOG[[Win32App][EspManager] Updating ESP tracked install status from InProgress to Completed"
 $installOK = "<![LOG[[Win32App][ReportingManager] Desired state for app with id:"
 $installOKEnd = "Present""}}]LOG]!>"
-
+$MultiAppIDSearch = "<![LOG[[Win32App][DownloadActionHandler] Handler invoked for policy with id: "
 
 $AppHash = 'Starts verifying encrypted hash'
 $AppHashStatus = $null
@@ -157,7 +157,7 @@ foreach ($item in $readfile)
 
         if ($StartAppsInst -eq $null)
         {
-            #$StartAppsInst = $timelogstart
+            $StartAppsInst = $timelogstart
 
         }
     }
@@ -190,6 +190,13 @@ foreach ($item in $readfile)
         $timeportalappend = ($time.Split("."))[0]        
         $dateportalappend = $date   
     }
+
+    if (($item.StartsWith($MultiAppIDSearch) -eq $true))
+    {
+        $singleID = ($item.Replace($MultiAppIDSearch,"")).split(" ")[0]
+    }
+
+
 
     if (($item.StartsWith($AppCheckHash) -eq $true))
     {
@@ -384,7 +391,7 @@ foreach ($item in $readfile)
                 if ($AllApp[-1] -like "$begappid*")
                 {
 
-                    $howmanyapps = ($AllApp.Count) -1
+                    $howmanyapps = ($AllApp.Count)
                     if ($howmanyapps -EQ "-1")
                     {
                         write-host ""
@@ -392,7 +399,7 @@ foreach ($item in $readfile)
                     }
                     Else
                     {
-                        $count = $count - 1
+                        $count = $count
                         write-host ""
                         Write-Host "Aplication $count of $howmanyapps installed" -ForegroundColor Yellow
 
@@ -485,7 +492,7 @@ foreach ($item in $readfile)
     }
 }
 
-$App = LogAppName $AppDownloadId
+$App = LogAppName $singleID
 
 if ($AppDownloadStatus -eq "Begin")
 {   
@@ -520,7 +527,7 @@ if ($AppLaunchStatus -eq "Begin")
     write-host $App   
 }
 
-$howmanyapps = ($AllApp.Count) -1
+$howmanyapps = ($AllApp.Count)
 if ($howmanyapps -EQ "-1")
 {
     write-host ""

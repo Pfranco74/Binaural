@@ -1,4 +1,4 @@
-﻿cls
+cls
 Remove-Variable * -ErrorAction SilentlyContinue
 $AllApp = $null
 $count = $null
@@ -84,7 +84,8 @@ $AllApp = AppstobeInstall $JoinedFile
 #write-host $Allapp -ForegroundColor Green     
 
 
-
+$wtf = "WTF"
+$wtfcheck = $null
 $AppDownloadStatus = $null
 $portalapp = $null
 $beginapp = "<![LOG[[Win32App][V3Processor] Processing subgraph with app ids: "
@@ -443,9 +444,19 @@ foreach ($item in $readfile)
                     $MultiAppID = $idarr[$i]
                 }
 
-                if ($MultiAppEnd -eq $true)
+                if ($wtf.contains($MultiAppID))
+                {
+                    $wtfcheck = $true
+                }
+                else
+                {
+                    $wtfcheck = $null
+                }
+
+                if (($MultiAppEnd -eq $true) -and ($wtfcheck -ne $true))
                 {
                     #write-host $MultiAppEnd
+                    $wtf = $wtf + $MultiAppID
                     $takethat = HowLong $Mulitimelogstart $Mulitimelogend            
                     $takethatdownload = HowLong $timeAppdownloadstart $timeAppCheckHashstart
                     $takethathash = HowLong $timeAppCheckHashstart $timeAppDecrypstart

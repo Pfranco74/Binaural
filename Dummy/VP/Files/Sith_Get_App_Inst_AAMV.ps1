@@ -1,4 +1,4 @@
-cls
+﻿cls
 Remove-Variable * -ErrorAction SilentlyContinue
 $AllApp = $null
 $count = $null

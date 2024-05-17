@@ -340,6 +340,7 @@ foreach ($item in $readfile)
         $datelog = $date 
 
         $AppLaunchStatus = "Begin"                   
+        $AppHashStatus = $null
     }
 
     if (($endappOK -eq $true) -and ($SingleApp -eq $true))

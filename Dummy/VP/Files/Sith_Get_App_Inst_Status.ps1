@@ -298,7 +298,8 @@ foreach ($item in $readfile)
         $timelog = ($time.Split("."))[0]            
         $datelog = $date 
 
-        $AppHashStatus = "Begin"                   
+        $AppHashStatus = "Begin"     
+        $AppDownloadStatus = $null
     }
 
     if ($item -like "*download and decryption is successfully done*")

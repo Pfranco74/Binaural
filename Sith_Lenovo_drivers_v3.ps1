@@ -439,7 +439,6 @@ function InstallDriver ($id)
             {  
                 ((Get-Content $batfile).ToUpper()).Replace("PAUSE","") | Out-File $batfile -Force default
                 $commandbat = $batfile
-                write-host $commandbat -ForegroundColor yellow
                 $runbat = ( Start-Process -Wait -FilePath $commandbat -PassThru )                                
             }
             Return
@@ -504,7 +503,7 @@ function DetectDriver ($xmlfile,$localdrv)
                             }
                             $forcerun = $createdir + "\install.txt"
                             $command = $PARSExmldrv.Package.ExtractCommand
-                            Out-File -FilePath $forcerun -InputObject $command -Force -Encoding utf8                             
+                            Out-File -FilePath $forcerun -InputObject $command -Force -Encoding default                             
 
                             Return
                         }
@@ -537,7 +536,10 @@ function DetectDriver ($xmlfile,$localdrv)
                     {
                         $searchhardwareid = $LocalHard.hardwareid
                         $searchhardwarever = $LocalHard.driverversion
-                        if ($searchhardwareid.Contains($WebDrvId))
+                        $WebDrv4 = $WebDrv.Substring($WebDrv.Length - 4)
+                    
+                        if (($searchhardwareid.Contains($WebDrv)) -or ($searchhardwareid.Contains($WebDrv4)))
+
                         {
                             if ($searchhardwarever -ge $WebDrvVersion)
                             {
@@ -556,7 +558,7 @@ function DetectDriver ($xmlfile,$localdrv)
                                 }
                                 $forcerun = $createdir + "\install.txt"
                                 $command = $PARSExmldrv.Package.ExtractCommand
-                                Out-File -FilePath $forcerun -InputObject $command -Force -Encoding utf8                             
+                                Out-File -FilePath $forcerun -InputObject $command -Force -Encoding default                          
 
                                 Return
                             }
@@ -587,7 +589,9 @@ function DetectDriver ($xmlfile,$localdrv)
                         {
                             $searchhardwareid = $LocalHard.hardwareid
                             $searchhardwarever = $LocalHard.driverversion
-                            if ($searchhardwareid.Contains($WebDrv))
+                            $WebDrv4 = $WebDrv.Substring($WebDrv.Length - 4)
+                    
+                            if (($searchhardwareid.Contains($WebDrv)) -or ($searchhardwareid.Contains($WebDrv4)))
                             {
                                 if ($searchhardwarever -ge $WebDrvVersion)
                                 {
@@ -606,7 +610,7 @@ function DetectDriver ($xmlfile,$localdrv)
                                     }
                                     $forcerun = $createdir + "\install.txt"
                                     $command = $PARSExmldrv.Package.ExtractCommand
-                                    Out-File -FilePath $forcerun -InputObject $command -Force -Encoding utf8                              
+                                    Out-File -FilePath $forcerun -InputObject $command -Force -Encoding default                              
 
                                     Return
                                 }
@@ -642,7 +646,9 @@ function DetectDriver ($xmlfile,$localdrv)
                     {
                         $searchhardwareid = $LocalHard.hardwareid
                         $searchhardwarever = $LocalHard.driverversion
-                        if ($searchhardwareid.Contains($WebDrvId))
+                        $WebDrv4 = $WebDrv.Substring($WebDrv.Length - 4)
+                    
+                        if (($searchhardwareid.Contains($WebDrv)) -or ($searchhardwareid.Contains($WebDrv4)))
                         {
                             if ($searchhardwarever -ge $WebDrvVersion)
                             {
@@ -661,7 +667,7 @@ function DetectDriver ($xmlfile,$localdrv)
                                 }
                                 $forcerun = $createdir + "\install.txr"
                                 $command = $PARSExmldrv.Package.ExtractCommand
-                                Out-File -FilePath $forcerun -InputObject $command -Force -Encoding utf8                              
+                                Out-File -FilePath $forcerun -InputObject $command -Force -Encoding default                              
 
                                 Return
                             }
@@ -692,7 +698,9 @@ function DetectDriver ($xmlfile,$localdrv)
                         {
                             $searchhardwareid = $LocalHard.hardwareid
                             $searchhardwarever = $LocalHard.driverversion
-                            if ($searchhardwareid.Contains($WebDrv))
+                            $WebDrv4 = $WebDrv.Substring($WebDrv.Length - 4)
+                    
+                            if (($searchhardwareid.Contains($WebDrv)) -or ($searchhardwareid.Contains($WebDrv4)))
                             {
                                 if ($searchhardwarever -ge $WebDrvVersion)
                                 {
@@ -711,7 +719,7 @@ function DetectDriver ($xmlfile,$localdrv)
                                     }
                                     $forcerun = $createdir + "\install.txt"
                                     $command = $PARSExmldrv.Package.ExtractCommand
-                                    Out-File -FilePath $forcerun -InputObject $command -Force -Encoding utf8                              
+                                    Out-File -FilePath $forcerun -InputObject $command -Force -Encoding default                              
 
                                     Return
                             }           

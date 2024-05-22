@@ -498,9 +498,9 @@ function InstallDriver ($id)
 
                 $readbat = Get-Content -Path $batfile
 
-                if (($readbat.TOUPPER()).Contains(":GOTOADMIN") -eq $true)
+                if (($readbat.TOUPPER()).Contains(":GOTADMIN") -eq $true)
                 {
-                    $PATTERN = "GOTOADMIN"
+                    $PATTERN = "GOTO GOTADMIN"
                     $NewContent = foreach ($line in $readbat)
                     {
                         if($line.ReadCount -eq 1) 
@@ -528,9 +528,9 @@ function InstallDriver ($id)
                 
                 $readcmd = Get-Content -Path $cmdfile
 
-                if (($readcmd.TOUPPER()).Contains(":GOTOADMIN") -eq $true)
+                if (($readcmd.TOUPPER()).Contains(":GOTADMIN") -eq $true)
                 {
-                    $PATTERN = "GOTOADMIN"
+                    $PATTERN = "GOTO GOTADMIN"
                     $NewContent = foreach ($line in $readcmd)
                     {
                         if($line.ReadCount -eq 1) 
@@ -852,14 +852,22 @@ $LogErr = "C:\Windows\Temp\Logs\Drivers\Lenovo_Drivers_Update.nok"
 $Repo = "C:\Windows\Temp\Drivers\Lenovo\Repo"
 $WebRepo = "C:\Windows\Temp\Drivers\Lenovo\WebRepo"
 CreateDir
-# Start logging
-Start-Transcript $LogTrans
-Write-Host "Start Drivers Update Process"
 
 if ((Test-Path $LogErr))
 {
     Remove-Item -Path $LogErr -Force
 }
+
+if ((Test-Path $LogFile))
+{
+    Remove-Item -Path $LogFile -Force
+}
+
+
+# Start logging
+Start-Transcript $LogTrans
+Write-Host "Start Drivers Update Process"
+
 
 $msg = "Start Drivers Update Process"
 Write-CMLogEntry -Value $msg

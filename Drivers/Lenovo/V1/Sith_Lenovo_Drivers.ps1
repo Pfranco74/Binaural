@@ -17,7 +17,8 @@ function global:Write-CMLogEntry {
 	)
 
 	# Determine log file location
-	$LogFilePath = Join-Path -Path $LogDirectory -ChildPath $FileName
+	#$LogFilePath = Join-Path -Path $LogDirectory -ChildPath $FileName
+    $LogFilePath = $LogFile
 	# Construct time stamp for log entry
 	$Time = -join @((Get-Date -Format "HH:mm:ss.fff"), "+", (Get-WmiObject -Class Win32_TimeZone | Select-Object -ExpandProperty Bias))
 	# Construct date for log entry
@@ -202,8 +203,17 @@ function LocalXml
             
             $msg = "Save Driver XML file" + $SaveFile
             Write-CMLogEntry -Value $msg
+            try
+            {
+                Invoke-WebRequest -Uri $Package.location -OutFile $SaveFile        
+            }
+            catch [System.Net.WebException],[System.Exception]
+            {
+                Write-Host "Cannot Access to WEB"
+                ForceErr
+            }
+            
 
-            Invoke-WebRequest -Uri $Package.location -OutFile $SaveFile        
         }
     }
     
@@ -340,27 +350,77 @@ function Extract
 function InstallDriver ($id)
 {          
         $commandlocation = Join-Path -Path $WebRepo -ChildPath $id
-        $extractfolder = $commandlocation + "\Extract"
+        $installcommand = $commandlocation + "\install.txt"
+        $command = $null
+        $Arguments = $null
+        $dpinst = $null
+        $skipinstall = @("N35A608W")
 
-        if (-not (Test-Path $commandlocation))
+        if (-not (Test-Path $installcommand))
         {
-            $msg = "Driver not applicable"
+            $msg = "Driver not applicable " + $id
             Write-CMLogEntry -Value $msg      
 
             return
         }
-        $msg = "Install driver" + $id
-        Write-CMLogEntry -Value $msg      
 
+        foreach ($itemdrv in $skipinstall)
+        {
+            if ($itemdrv -eq $id.ToUpper())
+            {
+                $msg = "Driver not applicable " + $id
+                Write-CMLogEntry -Value $msg      
+
+                return
+            }
+        }
+   
+        $msg = "Install driver " + $id
+        Write-CMLogEntry -Value $msg 
+        
+        Set-Location $commandlocation
+
+        $extractfolder = $commandlocation + "\Extract"
+
+        if (-not (Test-Path $extractfolder))
+        {
+            mkdir $extractfolder
+        }
+
+        $readinstallcommand = Get-Content -Path $installcommand     
+        $readinstallcommandarr = $readinstallcommand.Split(" ")
+
+        $command = $readinstallcommandarr[0]
+
+        for ($i = 1; $i -lt $readinstallcommandarr.Count; $i++)
+        { 
+            if ((($readinstallcommandarr[$i].ToUpper()) -EQ "/DIR=%PACKAGEPATH%"))
+            {
+                $Arguments = $Arguments + $readinstallcommandarr[$i].Replace("%PACKAGEPATH%",$extractfolder) + " "
+            }
+            Else
+            {
+            
+                $Arguments = $Arguments + $readinstallcommandarr[$i] + " "
+            }
+            
+        }
+        $run = ( Start-Process -Wait -FilePath $command -ArgumentList $Arguments -PassThru )     
+        
+                
+       
         $dpinst = $null
         $fileexe = $null
         $filemsi = $null
         $filebat = $null
-        
+        $filecmd = $null
+                
         $dpinst = $extractfolder + "\dpinst.exe"
         $fileexe = (Get-ChildItem -Path $extractfolder -Filter *.exe).name
         $filemsi = (Get-ChildItem -Path $extractfolder -Filter *.msi).name
         $filebat = (Get-ChildItem -Path $extractfolder -Filter *.bat).name
+        $filecmd = (Get-ChildItem -Path $extractfolder -Filter *.cmd).name
+
 
         Set-Location $extractfolder    
     
@@ -374,29 +434,50 @@ function InstallDriver ($id)
             Return
         }
 
-        if (($fileexe -ne $null))
+        if (($fileexe -ne $null) -and ($filebat -eq $null))
         {
             foreach ($exefile in $fileexe)
             {  
                 $commandexe = $exefile
 
+                $argsexe = "-s -norestart"
+
                 if ($commandexe.ToUpper() -eq 'DRIVERSETUP.EXE')
                 {
                     $argsexe = "/silent /norestart"
                 }
-                else
+
+                if ($commandexe.ToUpper() -eq 'INSTALLER.EXE')
                 {
-                    $argsexe = "-s -norestart"
+                    $argsexe = "-s -o"
+                    if (-not (Test-Path "c:\TEMP\INSTALLER"))
+                    {
+                        Mkdir "c:\TEMP\INSTALLER"
+                    }
+
+                    Copy-Item $extractfolder "c:\TEMP\INSTALLER" -Recurse -Force
+
+                    $commandexe = "c:\TEMP\INSTALLER\EXTRACT\INSTALLER.EXE"
+
                 }
+          
                 $runexe = ( Start-Process -Wait -FilePath $commandexe -ArgumentList $argsexe -PassThru ) 
                     
                 if ($runexe.ExitCode -eq 1)
                 {                            
                     $commandexe = $exefile
-                    $argsexe = "-s -overwrite"
-                    $runexe = ( Start-Process -Wait -FilePath $commandexe -ArgumentList $argsexe -PassThru )                            
-                }               
+                    $argsexe = "-s -o"
+                    $runexe = ( Start-Process -Wait -FilePath $commandexe -ArgumentList $argsexe -PassThru )  
+                }  
+
+                if ((Test-Path "c:\TEMP\INSTALLER"))
+                {
+                    Rmdir "c:\TEMP\INSTALLER" -Recurse -Force
+                }
+
+             
             }
+
             Return
         }
     
@@ -404,9 +485,20 @@ function InstallDriver ($id)
         {       
             foreach ($batfile in $filebat)
             {  
-                ((Get-Content $batfile).ToUpper()).Replace("PAUSE","") | Out-File $batfile -Force utf8    
+                ((Get-Content $batfile).ToUpper()).Replace("PAUSE","") | Out-File $batfile -Force default
+                ((Get-Content $batfile).ToUpper()).Replace("SHUTDOWN","REM SHUTDOWN") | Out-File $batfile -Force default
                 $commandbat = $batfile
-                $runbat = ( Start-Process -Wait -FilePath $commandbat -PassThru )                                
+                $runbat = ( Start-Process -Wait -FilePath $commandbat -PassThru )  
+            }
+            Return
+        }   
+
+        if ($filecmd -ne $null)
+        {       
+            foreach ($cmdfile in $filecmd)
+            {  
+                $commandcmd = $cmdfile
+                $runcmd = ( Start-Process -Wait -FilePath $commandcmd -PassThru )  
             }
             Return
         }   
@@ -420,69 +512,285 @@ function InstallDriver ($id)
         }                  
 }
 
-function DetectDriver ($xmlfile)
+function DetectDriver ($xmlfile,$localdrv)
 {    
-        [xml]$xmlfile = Get-Content -Path $file.FullName        
-        $collection = $xmlfile.Package.DetectVersion._PnPID
-
-        $msg = "Start if driver is needed"
-        Write-CMLogEntry -Value $msg      
-
-        foreach ($item in $collection)
+        
+    $LocalHardID = $localdrv
+    
+    $xmldrv = Get-Content -Path $file.FullName
+    [xml]$PARSExmldrv = $xmldrv -replace "^$UTF8ByteOrderMark"
+    $SingleDriver = $PARSExmldrv.Package.DetectInstall._Driver
+    $AndDriver = $PARSExmldrv.Package.DetectInstall.And._Driver
+    $OrDriver = $PARSExmldrv.Package.DetectInstall.or._Driver
+    $detect = $PARSExmldrv.Package.DetectInstall
+    if (($SingleDriver -ne $null) -and ($detect -ne $null))
+    {
+        $WebDrvVersion = (($PARSExmldrv.Package.DetectInstall._Driver).Version)
+        if ($WebDrvVersion.Contains("^"))
         {
-            $ID = $null
-            $ID = (($item.'#cdata-section').Split("&"))[0]
-            $ID = "*" + $ID + "*"
+            $WebDrvVersion = $WebDrvVersion.Replace("^","")
+        }
+        $WebDrvId = (($PARSExmldrv.Package.DetectInstall._Driver).HardwareID).'#cdata-section'
 
-            # Get driver version
-            [STRING]$version = $xmlfile.Package.version
-
-            
-            #write-host $ID -ForegroundColor Red
-            foreach ($drv in $Driver)
-            {     
-                $forceupdate = $null
-                $LocalDriverVersionTemp = $null      
-                if ($drv.hardwareid -like $ID)
-                {  
-                    $LocalVersion = [string]$drv.DriverVersion
-                    $WebVersion = [string]$version    
-                    if ($LocalVersion -lt $WebVersion)
-                    {   
-                        $msg = "The driver is to be updated" + $createdir
-                        Write-CMLogEntry -Value $msg      
-                          
-                        $createdir = Join-Path -Path $WebRepo -ChildPath $xmlfile.Package.id
-                         
-                        if (-not (Test-Path $createdir))
-                        {
-                            Mkdir $createdir
-                        }
-                        $forcerun = $createdir + "\Force.Download"
-
-                        Out-File -FilePath $forcerun -InputObject "Force Download" -Force -Encoding utf8                        
-                        return
-                    }
-                }
-                if ((($ID.Contains("-") -eq "True")) -and ($ID.Contains("{") -eq "True"))
+        foreach ($WebDrv in $WebDrvId)
+        {
+            foreach ($LocalHard in $LocalHardID)
+            {
+                if ($LocalHard.hardwareid -ne $null)
                 {
-                    $msg = "The driver is to be updated" + $createdir
-                    Write-CMLogEntry -Value $msg      
-                          
-                    $createdir = Join-Path -Path $WebRepo -ChildPath $xmlfile.Package.id
-                         
-                    if (-not (Test-Path $createdir))
+                    $searchhardwareid = $LocalHard.hardwareid
+                    $searchhardwarever = $LocalHard.driverversion
+                    $WebDrv4 = $WebDrv.Substring($WebDrv.Length - 4)
+                    
+                    if (($searchhardwareid.Contains($WebDrv)) -or ($searchhardwareid.Contains($WebDrv4)))
                     {
-                        Mkdir $createdir
-                    }
-                    $forcerun = $createdir + "\Force.Download"
+                        if ($searchhardwarever -ge $WebDrvVersion)
+                        {
 
-                    Out-File -FilePath $forcerun -InputObject "Force Download" -Force -Encoding utf8                        
-                    return
-                }                                            
+                        }
+                        else
+                        {   
+                            
+                            $createdir = Join-Path -Path $WebRepo -ChildPath $PARSExmldrv.Package.id
 
+                            $msg = "The driver is to be updated" + $createdir
+                            Write-CMLogEntry -Value $msg    
+                         
+                            if (-not (Test-Path $createdir))
+                            {
+                                Mkdir $createdir
+                            }
+                            $forcerun = $createdir + "\install.txt"
+                            $command = $PARSExmldrv.Package.ExtractCommand
+                            Out-File -FilePath $forcerun -InputObject $command -Force -Encoding default                             
+
+                            Return
+                        }
+                    }           
+                }       
+            }    
+        }  
+
+        $SingleDriver = $null
+    }
+
+    if (($OrDriver -ne $null) -and ($detect -ne $null))
+    {
+        $howmanydrv = ($PARSExmldrv.Package.DetectInstall.Or._Driver).Version
+        if ($howmanydrv.count -eq 1)
+        {
+            $WebDrvVersion = (($PARSExmldrv.Package.DetectInstall.Or._Driver).Version)       
+            if ($WebDrvVersion.Contains("^"))
+            {
+                $WebDrvVersion = $WebDrvVersion.Replace("^","")
             }
-        }   
+
+            $WebDrvId = (($PARSExmldrv.Package.DetectInstall.Or._Driver).HardwareID).'#cdata-section'
+
+            foreach ($WebDrv in $WebDrvId)
+            {
+                foreach ($LocalHard in $LocalHardID)
+                {
+                    if ($LocalHard.hardwareid -ne $null)
+                    {
+                        $searchhardwareid = $LocalHard.hardwareid
+                        $searchhardwarever = $LocalHard.driverversion
+                        $WebDrv4 = $WebDrv.Substring($WebDrv.Length - 4)
+                    
+                        if (($searchhardwareid.Contains($WebDrv)) -or ($searchhardwareid.Contains($WebDrv4)))
+
+                        {
+                            if ($searchhardwarever -ge $WebDrvVersion)
+                            {
+
+                            }
+                            else
+                            {
+                                $createdir = Join-Path -Path $WebRepo -ChildPath $PARSExmldrv.Package.id
+                                
+                                $msg = "The driver is to be updated" + $createdir
+                                Write-CMLogEntry -Value $msg    
+                         
+                                if (-not (Test-Path $createdir))
+                                {
+                                    Mkdir $createdir
+                                }
+                                $forcerun = $createdir + "\install.txt"
+                                $command = $PARSExmldrv.Package.ExtractCommand
+                                Out-File -FilePath $forcerun -InputObject $command -Force -Encoding default                          
+
+                                Return
+                            }
+                        }           
+                    }       
+                }    
+            }  
+
+            $OrDriver = $null
+        }
+        Else
+        {
+            $MultiDrv = ($PARSExmldrv.Package.DetectInstall.Or._Driver)
+            foreach ($itemdrv in $MultiDrv)
+            {
+                $WebDrvVersion = $itemdrv.Version                 
+                if ($WebDrvVersion.Contains("^"))
+                {
+                    $WebDrvVersion = $WebDrvVersion.Replace("^","")
+                }
+
+                $WebDrvId = $itemdrv.HardwareID.'#cdata-section'              
+                foreach ($WebDrv in $WebDrvId)
+                {
+                    foreach ($LocalHard in $LocalHardID)
+                    {
+                        if ($LocalHard.hardwareid -ne $null)
+                        {
+                            $searchhardwareid = $LocalHard.hardwareid
+                            $searchhardwarever = $LocalHard.driverversion
+                            $WebDrv4 = $WebDrv.Substring($WebDrv.Length - 4)
+                    
+                            if (($searchhardwareid.Contains($WebDrv)) -or ($searchhardwareid.Contains($WebDrv4)))
+                            {
+                                if ($searchhardwarever -ge $WebDrvVersion)
+                                {
+
+                                }
+                                else
+                                {
+                                    $createdir = Join-Path -Path $WebRepo -ChildPath $PARSExmldrv.Package.id
+                                    
+                                    $msg = "The driver is to be updated" + $createdir
+                                    Write-CMLogEntry -Value $msg    
+                         
+                                    if (-not (Test-Path $createdir))
+                                    {
+                                        Mkdir $createdir
+                                    }
+                                    $forcerun = $createdir + "\install.txt"
+                                    $command = $PARSExmldrv.Package.ExtractCommand
+                                    Out-File -FilePath $forcerun -InputObject $command -Force -Encoding default                              
+
+                                    Return
+                                }
+                            }           
+                        }       
+                    }    
+                }  
+            }
+            $OrDriver = $null
+            
+        }
+    }
+
+
+    if (($AndDriver -ne $null) -and ($detect -ne $null))
+    {      
+        $howmanydrv = ($PARSExmldrv.Package.DetectInstall.And._Driver).Version
+        if ($howmanydrv.count -eq 1)
+        {
+            $WebDrvVersion = (($PARSExmldrv.Package.DetectInstall.And._Driver).Version)       
+            if ($WebDrvVersion.Contains("^"))
+            {
+                $WebDrvVersion = $WebDrvVersion.Replace("^","")
+            }
+
+            $WebDrvId = (($PARSExmldrv.Package.DetectInstall.And._Driver).HardwareID).'#cdata-section'
+
+            foreach ($WebDrv in $WebDrvId)
+            {
+                foreach ($LocalHard in $LocalHardID)
+                {
+                    if ($LocalHard.hardwareid -ne $null)
+                    {
+                        $searchhardwareid = $LocalHard.hardwareid
+                        $searchhardwarever = $LocalHard.driverversion
+                        $WebDrv4 = $WebDrv.Substring($WebDrv.Length - 4)
+                    
+                        if (($searchhardwareid.Contains($WebDrv)) -or ($searchhardwareid.Contains($WebDrv4)))
+                        {
+                            if ($searchhardwarever -ge $WebDrvVersion)
+                            {
+
+                            }
+                            else
+                            {
+                                $createdir = Join-Path -Path $WebRepo -ChildPath $PARSExmldrv.Package.id
+                                
+                                $msg = "The driver is to be updated" + $createdir
+                                Write-CMLogEntry -Value $msg    
+                         
+                                if (-not (Test-Path $createdir))
+                                {
+                                    Mkdir $createdir
+                                }
+                                $forcerun = $createdir + "\install.txr"
+                                $command = $PARSExmldrv.Package.ExtractCommand
+                                Out-File -FilePath $forcerun -InputObject $command -Force -Encoding default                              
+
+                                Return
+                            }
+                        }           
+                    }       
+                }    
+            }  
+
+            $AndDriver = $null
+        }
+        Else
+        {
+            $MultiDrv = ($PARSExmldrv.Package.DetectInstall.And._Driver)
+            foreach ($itemdrv in $MultiDrv)
+            {
+                $WebDrvVersion = $itemdrv.Version                  
+                if ($WebDrvVersion.Contains("^"))
+                {
+                    $WebDrvVersion = $WebDrvVersion.Replace("^","")
+                }
+
+                $WebDrvId = $itemdrv.HardwareID.'#cdata-section'            
+                foreach ($WebDrv in $WebDrvId)
+                {
+                    foreach ($LocalHard in $LocalHardID)
+                    {
+                        if ($LocalHard.hardwareid -ne $null)
+                        {
+                            $searchhardwareid = $LocalHard.hardwareid
+                            $searchhardwarever = $LocalHard.driverversion
+                            $WebDrv4 = $WebDrv.Substring($WebDrv.Length - 4)
+                    
+                            if (($searchhardwareid.Contains($WebDrv)) -or ($searchhardwareid.Contains($WebDrv4)))
+                            {
+                                if ($searchhardwarever -ge $WebDrvVersion)
+                                {
+
+                                }
+                                else
+                                {
+                                    $createdir = Join-Path -Path $WebRepo -ChildPath $PARSExmldrv.Package.id
+                                
+                                    $msg = "The driver is to be updated" + $createdir
+                                    Write-CMLogEntry -Value $msg    
+                         
+                                    if (-not (Test-Path $createdir))
+                                    {
+                                        Mkdir $createdir
+                                    }
+                                    $forcerun = $createdir + "\install.txt"
+                                    $command = $PARSExmldrv.Package.ExtractCommand
+                                    Out-File -FilePath $forcerun -InputObject $command -Force -Encoding default                              
+
+                                    Return
+                            }           
+                        }       
+                    }    
+                }  
+            }
+            $AndDriver = $null
+            
+        }
+    }
+}
 }
 
 cls
@@ -490,13 +798,14 @@ cls
 #Create Temp Directories
 $TempDirectory = "C:\Windows\Temp\Drivers\Lenovo"
 $LogDirectory = "C:\Windows\Temp\Logs\Drivers"
+$LogTrans = "C:\Windows\Temp\Logs\Drivers\Run_Sith_Lenovo_Drivers.log"
 $LogFile = "C:\Windows\Temp\Logs\Drivers\Lenovo_Drivers_Update.log"
 $LogErr = "C:\Windows\Temp\Logs\Drivers\Lenovo_Drivers_Update.nok"
 $Repo = "C:\Windows\Temp\Drivers\Lenovo\Repo"
 $WebRepo = "C:\Windows\Temp\Drivers\Lenovo\WebRepo"
 CreateDir
 # Start logging
-Start-Transcript $LogFile
+Start-Transcript $LogTrans
 Write-Host "Start Drivers Update Process"
 
 $msg = "Start Drivers Update Process"
@@ -523,11 +832,18 @@ catch
 
 #Get Computer Model
 $model = ComputerModel
-Write-Host "Lenovo Model is: $Model"
+$msg = "Lenovo Model is: $Model"
+Write-Host $msg
+Write-CMLogEntry -Value $msg
+
 
 #Get Os Version
 $OSversion = OSVersion
-Write-Host "Operation System Version is: $OSversion"
+$msg = "Operation System Version is: $OSversion"
+Write-Host $msg
+Write-CMLogEntry -Value $msg
+
+
 
 #Copy Files
 Write-Host "Start to copy Repo"
@@ -539,6 +855,7 @@ $msg = "Get installed Drivers"
 Write-CMLogEntry -Value $msg      
 
 $Driver = Get-WmiObject Win32_PnPSignedDriver | select Devicename, HardwareID, DriverVersion
+#$LocalHardID = Get-WmiObject Win32_PnPSignedDriver | select hardwareid, driverversion
 
 # Process local XML Driver Model
 Write-Host "Process local XML Driver Model"
@@ -554,6 +871,7 @@ Write-CMLogEntry -Value $msg
 
 $XmlList = Get-ChildItem -Path $WebRepo -Filter *.xml
 
+#$XmlList = Get-ChildItem -Path c:\Windows\Temp\Drivers\Lenovo\WebRepo\r0hd122w_2_.xml
 # Process data in XML driver
 Write-Host "Process data in XML driver"
 $msg = "Process data in XML driver"
@@ -561,38 +879,38 @@ Write-CMLogEntry -Value $msg
 
 foreach ($file in $XmlList)
 {
+    $Msg = "Process File " +  $file.FullName    
+    Write-Host $msg
+    Write-CMLogEntry -Value $msg      
+
     $collection = $null
     [xml]$xmlfile = Get-Content -Path $file.FullName    
     $collection = $xmlfile.Package.DetectVersion._PnPID
-
-    foreach ($item in $collection)
-    {
-        Set-Location -Path $WebRepo
+    Set-Location -Path $WebRepo
 
 
-        # Detect if driver is aplly
-        $msg = "Detect Driver " + $xmlfile.Package.name
-        Write-Host $msg
-        Write-CMLogEntry -Value $msg      
+    # Detect if driver is aplly
+    $msg = "Detect Driver " + $xmlfile.Package.name
+    Write-Host $msg
+    Write-CMLogEntry -Value $msg      
 
-        DetectDriver $xmlfile
+    DetectDriver $xmlfile $Driver
 
-        # Dowload Driver
-        $msg = "Start Download Driver Process"
-        Write-Host $msg
-        Write-CMLogEntry -Value $msg      
+    # Dowload Driver
+    $msg = "Start Download Driver Process"
+    Write-Host $msg
+    Write-CMLogEntry -Value $msg      
 
-        DownloadDriver
+    DownloadDriver
 
-        #Extract Driver
-        $msg = "Start Extract Driver Process"
-        Write-Host $msg
-        Write-CMLogEntry -Value $msg      
+    #Extract Driver
+    $msg = "Start Extract Driver Process"
+    Write-Host $msg
+    Write-CMLogEntry -Value $msg      
 
-        Extract    
-    }
+    #Extract    
+}
       
-}  
 
 # Install Driver
 write-host "Start Install Driver Process"
@@ -604,7 +922,9 @@ $downloaddrivers = Get-ChildItem -Path $WebRepo -Filter *.
 foreach ($downdriver in $downloaddrivers)
 {              
     $msg = "Install Driver " + $downdriver.Name
-    Write-CMLogEntry -Value $msg    
+    Write-CMLogEntry -Value $msg  
+    
+    Write-host $msg  
 
     InstallDriver $downdriver.Name    
 }

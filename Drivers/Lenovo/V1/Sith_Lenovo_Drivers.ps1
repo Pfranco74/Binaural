@@ -819,6 +819,11 @@ CreateDir
 Start-Transcript $LogTrans
 Write-Host "Start Drivers Update Process"
 
+if ((Test-Path $LogErr))
+{
+    Remove-Item -Path $LogErr -Force
+}
+
 $msg = "Start Drivers Update Process"
 Write-CMLogEntry -Value $msg
 

@@ -497,6 +497,9 @@ function InstallDriver ($id)
         {       
             foreach ($cmdfile in $filecmd)
             {  
+                ((Get-Content $cmdfile).ToUpper()).Replace("PAUSE","") | Out-File $cmdfile -Force default
+                ((Get-Content $cmdfile).ToUpper()).Replace("SHUTDOWN","REM SHUTDOWN") | Out-File $cmdfile -Force default
+
                 $commandcmd = $cmdfile
                 $runcmd = ( Start-Process -Wait -FilePath $commandcmd -PassThru )  
             }

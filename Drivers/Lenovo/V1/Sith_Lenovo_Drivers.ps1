@@ -405,8 +405,16 @@ function InstallDriver ($id)
             }
             
         }
-        $run = ( Start-Process -Wait -FilePath $command -ArgumentList $Arguments -PassThru )     
-        
+        try
+        {
+            $run = ( Start-Process -Wait -FilePath $command -ArgumentList $Arguments -PassThru )     
+        }
+        catch
+        {
+            $msg = "Exe with problems " + $id
+            Write-CMLogEntry -Value $msg      
+            ForceErr
+        }
                 
        
         $dpinst = $null

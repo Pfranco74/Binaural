@@ -354,7 +354,7 @@ function InstallDriver ($id)
         $command = $null
         $Arguments = $null
         $dpinst = $null
-        $skipinstall = @("N35A608W")
+        $skipinstall = @("LFCDRIVER")
 
         if (-not (Test-Path $installcommand))
         {
@@ -494,7 +494,24 @@ function InstallDriver ($id)
             foreach ($batfile in $filebat)
             {  
                 ((Get-Content $batfile).ToUpper()).Replace("PAUSE","") | Out-File $batfile -Force default
-                ((Get-Content $batfile).ToUpper()).Replace("SHUTDOWN","REM SHUTDOWN") | Out-File $batfile -Force default
+                ((Get-Content $batfile).ToUpper()).Replace("SHUTDOWN","REM SHUTDOWN") | Out-File $batfile -Force default          
+
+                $readbat = Get-Content -Path $batfile
+
+                if (($readbat.TOUPPER()).Contains(":GOTOADMIN") -eq $true)
+                {
+                    $PATTERN = "GOTOADMIN"
+                    $NewContent = foreach ($line in $readbat)
+                    {
+                        if($line.ReadCount -eq 1) 
+                        {
+                            $PATTERN    
+                        }
+                        $line
+                    }
+                    Set-Content -Path $batfile -Value $NewContent -Force
+                }
+                
                 $commandbat = $batfile
                 $runbat = ( Start-Process -Wait -FilePath $commandbat -PassThru )  
             }
@@ -507,6 +524,26 @@ function InstallDriver ($id)
             {  
                 ((Get-Content $cmdfile).ToUpper()).Replace("PAUSE","") | Out-File $cmdfile -Force default
                 ((Get-Content $cmdfile).ToUpper()).Replace("SHUTDOWN","REM SHUTDOWN") | Out-File $cmdfile -Force default
+
+                
+                $readcmd = Get-Content -Path $cmdfile
+
+                if (($readcmd.TOUPPER()).Contains(":GOTOADMIN") -eq $true)
+                {
+                    $PATTERN = "GOTOADMIN"
+                    $NewContent = foreach ($line in $readcmd)
+                    {
+                        if($line.ReadCount -eq 1) 
+                        {
+                            $PATTERN    
+                        }
+                        $line
+                    }
+                    Set-Content -Path $cmdfile -Value $NewContent -Force
+                }
+                
+
+
 
                 $commandcmd = $cmdfile
                 $runcmd = ( Start-Process -Wait -FilePath $commandcmd -PassThru )  

@@ -1,4 +1,5 @@
-﻿cls
+﻿# Ver 01.00 Rev.LFC 17052024
+cls
 Remove-Variable * -ErrorAction SilentlyContinue
 $AllApp = $null
 $count = $null
@@ -84,7 +85,7 @@ $AllApp = AppstobeInstall $JoinedFile
 #write-host $Allapp -ForegroundColor Green     
 
 
-$wtf = "WTF"
+$wtf = "WTF-"
 $wtfcheck = $null
 $AppDownloadStatus = $null
 $portalapp = $null
@@ -94,6 +95,7 @@ $AppDownloadBytes = "bytes 0/0"
 $portalappbeg = "<![LOG[[Package Manager] BytesRequired - 0BytesDownloaded - 0DownloadProgress - 1InstallationProgress - 0"
 $dateportalappend = "<![LOG[[WinGetLocalProgressAndResultSender] Changing app state to download complete"
 $AppDownloadPER = "via DO, bytes "
+$AppDownloadCDN = "via CDN, bytes "
 $AppCheckHash = "<![LOG[[Win32App] Starts verifying encrypted hash]LOG"
 $AppDecryp = "<![LOG[[Win32App DO] DO download and decryption is successfully done"
 $AppUnzip = "<![LOG[[Win32App] Unzipping file on session"
@@ -269,16 +271,13 @@ foreach ($item in $readfile)
         $time = [regex]::Match($item, $timePattern).Groups[1].Value
 
         $timelog = ($time.Split("."))[0]            
-        $datelog = $date 
-            
-        $positionid = $item.IndexOf("App:")            
-        $appid = (((($item.Substring($positionid+1)).split("]"))[0]).split(""))[1] 
-                
-        $AppDownloadId = $appid
-        
+        $datelog = $date           
+        $positionid = $item.IndexOf("id = ")            
+        #$appid = (((($item.Substring($positionid+1)).split("]"))[0]).split(""))[1] 
+        $appid = ($item.Substring($positionid+5)).split(",")[0]             
+        $AppDownloadId = $appid       
         $AppDownloadStatus = "Begin"
-        $timestart = $timelog      
-               
+        $timestart = $timelog                          
     }
 
     if ($item -like "*Notified DO Service the job is complete*")
@@ -298,8 +297,8 @@ foreach ($item in $readfile)
         $timelog = ($time.Split("."))[0]            
         $datelog = $date 
 
-        $AppHashStatus = "Begin"     
-        $AppDownloadStatus = $null
+        $AppHashStatus = "Begin"
+        $AppDownloadStatus = $null                   
     }
 
     if ($item -like "*download and decryption is successfully done*")
@@ -339,13 +338,12 @@ foreach ($item in $readfile)
         $timelog = ($time.Split("."))[0]            
         $datelog = $date 
 
-        $AppLaunchStatus = "Begin"                   
-        $AppHashStatus = $null
+        $AppLaunchStatus = "Begin"
+        $AppHashStatus = $null                   
     }
 
     if (($endappOK -eq $true) -and ($SingleApp -eq $true))
     {
-
             $endappOK = $false
             $AppLaunchStatus = $null  
 
@@ -353,14 +351,11 @@ foreach ($item in $readfile)
             $takethatdownload = HowLong $timeAppdownloadstart $timeAppCheckHashstart
             $takethathash = HowLong $timeAppCheckHashstart $timeAppDecrypstart
             $takethatunzip = HowLong $timeAppUnzipstart $timeAppInststart
-            $takethatinst = HowLong $timeAppInststart $timelogend
-
+            $takethatinst = HowLong $timeAppInststart $timelogend        
             if ($portalapp -eq $true)
             {
                 $takethatinst = HowLong $timeportalappbeg $timeportalappend
             }
-                       
-            
             
             $App = LogAppName $begappid
             $AppCtrl = $App
@@ -380,12 +375,15 @@ foreach ($item in $readfile)
                 else
                 {
                     $portalapp = $null
+                    $AppLaunchStatus = $null
+                    $AppDownloadStatus = $null
+
                     Write-Host $App -ForegroundColor Green  
                     #Write-Host "Install Time" $takethatinst.Replace("Total Time: ","") 
                     Write-Host $takethat
                     
                     Write-Host ""
-
+                    
                 }
 
                 $count = $count + 1
@@ -397,23 +395,23 @@ foreach ($item in $readfile)
                     $howmanyapps = ($AllApp.Count)
                     if ($howmanyapps -EQ "-1")
                     {
-                        write-host ""
-                        Write-Host "No apps found to be install" -ForegroundColor Red
+                        #write-host ""
+                        #Write-Host "No apps found to be install" -ForegroundColor Red
                     }
                     Else
                     {
                         $count = $count
-                        write-host ""
-                        Write-Host "Aplication $count of $howmanyapps installed" -ForegroundColor Yellow
+                        #write-host ""
+                        #Write-Host "Aplication $count of $howmanyapps installed" -ForegroundColor Yellow
 
                         $time = [regex]::Match($item, $timePattern).Groups[1].Value
                         $timelastapp = ($time.Split("."))[0] 
                         $totaltime = HowLong $StartAppsInst $timelastapp
-                        Write-Host $totaltime
+                        #Write-Host $totaltime
                     }
 
                     
-                    exit 
+                    #exit 
                 }       
             }                   
         }
@@ -449,6 +447,9 @@ foreach ($item in $readfile)
                 if ($wtf.contains($MultiAppID))
                 {
                     $wtfcheck = $true
+                    $AppLaunchStatus = $null
+                    $AppDownloadStatus = $null
+
                 }
                 else
                 {
@@ -482,24 +483,32 @@ foreach ($item in $readfile)
                     }                   
                     $MultiAppEnd = $false
                     $AppLaunchStatus = $null
+                    $AppDownloadStatus = $null
                 }
 
             }   
         }
 
-        if (($item -like "*$AppDownloadPER*"))
-        {
+    if (($item -like "*$AppDownloadPER*") -or ($item -like "*$AppDownloadCDN*"))
+    {
         $line = $item.Split(" ")
 
         foreach ($item in $line)
         {
-            if ($item -like "*/*")
+            if (($item -like "*/*") -and ($item -notlike "*//*"))
             {
-                $atual = $item.Split("/")[0]
+                $atual = $item.Split("/")[0]               
                 $total = $item.Split("/")[-1]
-                if ($atual -ne 0)
-                {
-                    $downloadper = ($atual/$total).ToString("P")                    
+                if (($atual -ne 0) -and ($total -ne 0))
+                {   
+                    try
+                    {              
+                        $downloadper = ($atual/$total).ToString("P")                  
+                    }
+                    catch
+                    {
+                        Write-host "Error calculating precentage"                    
+                    }
                 }
             }
         }       

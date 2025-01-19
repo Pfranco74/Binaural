@@ -133,12 +133,12 @@ if ("$env:PROCESSOR_ARCHITECTURE" -ne "ARM64")
 
 
 # Start logging
-$LogAuto = "C:\Windows\Temp\Logs\AutoPilot\20WL.log"
+$LogAuto = "C:\Windows\Temp\Logs\AutoPilot\20T3.log"
 $DirAuto = "C:\Windows\Temp\Logs\AutoPilot"
-$LogFile = "C:\Windows\Temp\Logs\20WL\PS_20WL.log"
-$LogErr = "C:\Windows\Temp\Logs\20WL\PS_20WL.nok"
-$LogDir = "C:\Windows\Temp\Logs\20WL"
-$tempDirectory = "C:\Windows\Temp\20WL"
+$LogFile = "C:\Windows\Temp\Logs\20T3\PS_20T3.log"
+$LogErr = "C:\Windows\Temp\Logs\20T3\PS_20T3.nok"
+$LogDir = "C:\Windows\Temp\Logs\20T3"
+$tempDirectory = "C:\Windows\Temp\20T3"
 $tempDrv = "C:\Temp\Drv"
 
 
@@ -167,7 +167,7 @@ $Manufacturer = Manufacturer
 
 if ($Manufacturer -ne 'LENOVO')
 {
-    Write-Output "Skip Update not 20WL Lenovo Model"
+    Write-Output "Skip Update not 20T3 Lenovo Model"
     $now = Get-Date -Format "dd-MM-yyyy hh:mm:ss"
     AutoPilot "End  " $now
     $intunelog = "C:\ProgramData\Microsoft\IntuneManagementExtension\Logs\IntuneManagementExtension-" + $LogFile.Split("\")[-1]
@@ -180,9 +180,9 @@ $model = ComputerModel
 Write-Host "This is a $Manufacturer model $model" 
     
 
-if ($model -ne '20WL')
+if ($model -ne '20T3')
 {
-    Write-Output "Skip Update not 20WL Lenovo Model"
+    Write-Output "Skip Update not 20T3 Lenovo Model"
     $now = Get-Date -Format "dd-MM-yyyy hh:mm:ss"
     AutoPilot "End  " $now
     $intunelog = "C:\ProgramData\Microsoft\IntuneManagementExtension\Logs\IntuneManagementExtension-" + $LogFile.Split("\")[-1]
@@ -297,14 +297,14 @@ if ((Test-Path -Path $TempDrv))
 }
 
 
-if (Test-Path -Path "C:\Windows\Temp\Logs\20WL\PS_20WL.log")
+if (Test-Path -Path "C:\Windows\Temp\Logs\20T3\PS_20T3.log")
 {
-    $readfile = get-content -Path "C:\Windows\Temp\Logs\20WL\PS_20WL.log"
+    $readfile = get-content -Path "C:\Windows\Temp\Logs\20T3\PS_20T3.log"
     $founderror = $null    
 }
 else
 {
-    write-host "File not found C:\Windows\Temp\Logs\20WL\PS_20WL.log"
+    write-host "File not found C:\Windows\Temp\Logs\20T3\PS_20T3.log"
     ForceErr
 }
 

@@ -1,4 +1,4 @@
-﻿$scriptVersion = "20250116"
+﻿$scriptVersion = "20250122"
 
 Remove-Variable * -ErrorAction SilentlyContinue
 
@@ -118,10 +118,11 @@ $DirAuto = "C:\Windows\Temp\Logs\AutoPilot"
 $LogFile = "C:\Windows\Temp\Logs\WingetHPAC\PS_WingetHPAC.log"
 $LogErr = "C:\Windows\Temp\Logs\WingetHPAC\PS_WingetHPAC.nok"
 $LogDir = "C:\Windows\Temp\Logs\WingetHPAC"
-
+$tempdirectory = "C:\Windows\Temp\WingetHPAC"
 
 CreateDir $LogDir
 CreateDir $DirAuto
+CreateDir $tempdirectory
 
 DelFile $LogFile
 DelFile $LogErr
@@ -141,17 +142,50 @@ $Manufacturer = Manufacturer
 
 if ($Manufacturer -eq 'HP')
 {
-    write-host "Install HP Accessory Center"
-    #winget install "HP Accessory Center" --accept-source-agreements --accept-package-agreements
-    winget install "HP Accessory Center" --accept-source-agreements --accept-package-agreements --scope machine --source msstore
+
+    try
+    {
+        # Copy the files
+        write-host "Copy Files"
+        Copy-Item ".\files\*" $tempdirectory -Force -Recurse  
+   
+        Set-Location $tempdirectory
+
+        write-host "Install HP Accessory Center"
+        # winget install "HP Accessory Center" --accept-source-agreements --accept-package-agreements --scope machine --source msstore
+        Add-AppProvisionedPackage -Online -PackagePath Microsoft.VCLibs.140.00.UWPDesktop_14.0.33728.0_x64__8wekyb3d8bbwe.Appx -SkipLicense
+        Add-AppProvisionedPackage -Online  -PackagePath AD2F1837.HPAccessoryCenter_2.16.3374.0_neutral_~_v10z8vjag6ke6.AppxBundle  -SkipLicense
+
+        Add-AppPackage -Path Microsoft.VCLibs.140.00.UWPDesktop_14.0.33728.0_x64__8wekyb3d8bbwe.Appx
+        Add-AppPackage -Path AD2F1837.HPAccessoryCenter_2.16.3374.0_neutral_~_v10z8vjag6ke6.AppxBundle
+    }
+    catch
+    {
+        Write-host "$Error[0]"
+        ForceErr  
+    }
 }
 Else
 {
     write-host "Nothing to do not a HP Model"
 }
 
+
+
+write-host "Clean Up"
+    
+Set-Location c:\
+	
+if ((Test-Path -Path $TempDirectory))
+{
+    Remove-Item -Path $TempDirectory -Force -Recurse
+}
+
+
 $now = Get-Date -Format "dd-MM-yyyy hh:mm:ss"
 AutoPilot "End  " $now
 $intunelog = "C:\ProgramData\Microsoft\IntuneManagementExtension\Logs\IntuneManagementExtension-" + $LogFile.Split("\")[-1]
 Copy-Item $LogFile $intunelog -Force -ErrorAction SilentlyContinue
 Stop-Transcript
+
+# https://apps.microsoft.com/detail/9P87FCQVTC59?hl=en-us&gl=PT&ocid=pdpshare

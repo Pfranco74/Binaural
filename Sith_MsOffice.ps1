@@ -121,11 +121,11 @@ try
         ForceErr
     }
     
-    # Copy the Reg files
+    # Copy files
     write-host "Copy Files"
     Copy-Item ".\files\*" $tempDirectory -Force -Recurse  
 
-    # Download Office
+    # Create XML
     Set-Location $tempDirectory
 
     $HTML = Invoke-WebRequest -Uri $URI
@@ -152,16 +152,28 @@ try
     $newfile = Join-Path -Path $tempDirectory -ChildPath "i64C2RDownload.xml"
     Out-File -FilePath $newfile -InputObject $readfile
 
-    # Build the path to the exe file
+    # Download Files
     $exePath = Join-Path -Path $tempDirectory -ChildPath "setup.exe"
-    $downloadpath
-    $configpath = Join-Path -Path $currentDirectory -ChildPath "i64C2R.xml"
+    $downloadpath = Join-Path -Path $tempDirectory -ChildPath "i64C2RDownload.xml"
     
-    $argumentos = "/configure " + $configpath
+    $argumentos1 = "/download " + $downloadpath
     Write-Host "Command is $exePath"
-    Write-Host "Arguments are $argumentos"
+    Write-Host "Arguments are $argumentos1"
                
-    $run = Start-Process -FilePath $exePath -ArgumentList $argumentos -Wait -NoNewWindow -PassThru
+    $run = Start-Process -FilePath $exePath -ArgumentList $argumentos1 -Wait -NoNewWindow -PassThru
+            
+    if (($run.ExitCode -ne 0) -and ($run.ExitCode -ne 3010))
+    {    
+        Write-host "$Error[0]"
+        ForceErr
+    }   
+    
+    # Install MSOffice
+    $argumentos2 = "/configure " + $configpath
+    Write-Host "Command is $exePath"
+    Write-Host "Arguments are $argumentos2"
+               
+    $run = Start-Process -FilePath $exePath -ArgumentList $argumentos2 -Wait -NoNewWindow -PassThru
             
     if (($run.ExitCode -ne 0) -and ($run.ExitCode -ne 3010))
     {    

@@ -112,7 +112,7 @@ AutoPilot "Begin" $now
 
 try
 {
-
+    # Copy Files
     $filessource = (get-Location).Path
     $filessource = Join-Path -Path $filessource -ChildPath "Files"
     if (-NOT(Test-Path -Path $filessource))
@@ -121,7 +121,6 @@ try
         ForceErr
     }
     
-    # Copy files
     write-host "Copy Files"
     Copy-Item ".\files\*" $tempDirectory -Force -Recurse  
 
@@ -133,24 +132,25 @@ try
 
     foreach ($item in $result)
     {
-    if ($item -like "*$version*")
-    {
-        if ($item.outerHTML.ToUpper() -like "*$name*")
+        if ($item -like "*$version*")
         {
-            $webversiontemp = ($item.outerText.Split(" ")[-1]).replace(")","")
-
-            if ($webversion -lt $webversiontemp)
+            if ($item.outerHTML.ToUpper() -like "*$name*")
             {
-                $webversion = $webversiontemp
-            }    
+                $webversiontemp = ($item.outerText.Split(" ")[-1]).replace(")","")
+
+                if ($webversion -lt $webversiontemp)
+                {
+                    $webversion = $webversiontemp
+                }    
+            }
         }
-
     }
-}
 
-    $readfile = (Get-Content -Path C:\Temp\O365\i64C2R_Template.xml) -replace "XXXXX.ZZZZZ", $webversion
+    $readfile = (Get-Content -Path .\i64C2R_Template.xml) -replace "XXXXX.ZZZZZ", $webversion
     $newfile = Join-Path -Path $tempDirectory -ChildPath "i64C2RDownload.xml"
     Out-File -FilePath $newfile -InputObject $readfile
+
+    Write-Output $readfile
 
     # Download Files
     $exePath = Join-Path -Path $tempDirectory -ChildPath "setup.exe"
@@ -169,7 +169,7 @@ try
     }   
     
     # Install MSOffice
-    $argumentos2 = "/configure " + $configpath
+    $argumentos2 = "/configure " + $downloadpath
     Write-Host "Command is $exePath"
     Write-Host "Arguments are $argumentos2"
                

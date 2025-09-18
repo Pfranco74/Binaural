@@ -110,17 +110,19 @@ function ComputerModel
     Return $Model  
 }
 
-function SendMsg
+function SendMsg($param1)
 {
+    Install-PackageProvider -Name NuGet -Force
     install-module RunAsUser
     $sb =
     {
         Add-Type -AssemblyName PresentationCore,PresentationFramework
-        $msgbody = "Erro na configuração do adaptador da CASH, regularize a configuração instalando o MM Prolific Config através do Portal da Empresa"
+        $msgbody = $msg
         $msgimage = "Hand"
         [System.Windows.MessageBox]::Show($msgbody,'Mensagem','Ok','Error')
     }
-    Invoke-AsCurrentUser -ScriptBlock $sb
+
+    Invoke-AsCurrentUser -ScriptBlock $SB -Visible -Verbose
 }
 
 # If we are running as a 32-bit process on an x64 system, re-launch as a 64-bit process
@@ -142,7 +144,7 @@ $EutilsDir = 'C:\Program Files\Eutils'
 $ModelCerti = @("11DG","11U6","20L6","20N2","20N3","20SY","20T3","20WL","21AJ","21BQ","21EY","21HE","21LX","21MM","30C8","HPElitex36083013inchG112-in-1NotebookPC","HPEliteBook8FlipG1i13inchNotebookAIPC","HPEliteBook83013inchG11NotebookPC","HPProMini400G9DesktopPC","HPProt550ThinClient","Latitude 7320 Detachable","Surface Pro 8")
 $install = $false
 
-
+SendMsg "TESTE"
 
 CreateDir $LogDir
 CreateDir $DirAuto

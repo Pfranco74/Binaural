@@ -110,21 +110,6 @@ function ComputerModel
     Return $Model  
 }
 
-function SendMsg($param1)
-{
-    Install-PackageProvider -Name NuGet -Force
-    install-module RunAsUser
-    $sb =
-    {
-        Add-Type -AssemblyName PresentationCore,PresentationFramework
-        $msgbody = $msg
-        $msgimage = "Hand"
-        [System.Windows.MessageBox]::Show($msgbody,'Mensagem','Ok','Error')
-    }
-
-    Invoke-AsCurrentUser -ScriptBlock $SB -Visible -Verbose
-}
-
 # If we are running as a 32-bit process on an x64 system, re-launch as a 64-bit process
 if ("$env:PROCESSOR_ARCHITECTURE" -ne "ARM64")
 {
@@ -174,6 +159,21 @@ foreach ($item in $ModelCerti)
     if ($item.toupper() -eq $model.ToUpper())
     {
         Write-host "This model $model is certified"
+
+    Install-PackageProvider -Name NuGet -Force
+    install-module RunAsUser
+    
+    $sb =
+    {
+        Add-Type -AssemblyName PresentationCore,PresentationFramework
+        $msgbody = "This model $model is certified"
+        $msgimage = "Hand"
+        [System.Windows.MessageBox]::Show($msgbody,'Mensagem','Ok','Error')    }
+
+    Invoke-AsCurrentUser -ScriptBlock $SB -Visible -Verbose
+
+
+
         $install = $true
     }
 }
@@ -181,8 +181,18 @@ foreach ($item in $ModelCerti)
 if ($install -ne 'True')
 {
     Write-host "This model $model is not certified"
-    $argsmsg = "console /time:259200 ""This model $model is not certified"""
-    Start-Process -FilePath 'MSG' -ArgumentList $argsmsg -WindowStyle Maximized
+    
+    Install-PackageProvider -Name NuGet -Force
+    install-module RunAsUser
+    
+    $sb =
+    {
+        Add-Type -AssemblyName PresentationCore,PresentationFramework
+        $msgbody = "This model $model is not certified"
+        $msgimage = "Hand"
+        [System.Windows.MessageBox]::Show($msgbody,'Mensagem','Ok','Error')    }
+
+    Invoke-AsCurrentUser -ScriptBlock $SB -Visible -Verbose
     ForceErr
 }
 
@@ -193,8 +203,21 @@ try
     if ((([string]::IsNullOrWhitespace($OEM.Logo)) -ne $true))
     {
         Write-Host "Detect OEM image reference"
-        $argsmsg = "console /time:259200 ""Detect OEM image reference"""
-        Start-Process -FilePath 'MSG' -ArgumentList $argsmsg -WindowStyle Maximized
+
+        Install-PackageProvider -Name NuGet -Force
+        install-module RunAsUser
+    
+        $sb =
+        {
+            Add-Type -AssemblyName PresentationCore,PresentationFramework
+            $msgbody = "Detect OEM image reference"
+            $msgimage = "Hand"
+            [System.Windows.MessageBox]::Show($msgbody,'Mensagem','Ok','Error')    
+        }
+
+        Invoke-AsCurrentUser -ScriptBlock $SB -Visible -Verbose
+        ForceErr
+
         ForceErr
     }
 }

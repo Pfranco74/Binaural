@@ -95,6 +95,7 @@ if ("$env:PROCESSOR_ARCHITECTURE" -ne "ARM64")
         Exit $lastexitcode
     }
 }
+
 # Start logging
 $LogAuto = "C:\Programdata\MBCP\Intune\AutoPilot\Logs\AutoPilot\BitLocker.log"
 $DirAuto = "C:\Programdata\MBCP\Intune\AutoPilot\Logs\AutoPilot"
@@ -132,23 +133,13 @@ $BitLockerDecrypted = Get-BitLockerVolume -MountPoint $env:SystemDrive | where {
 $BLVS = Get-BitLockerVolume | Where-Object {$_.KeyProtector | Where-Object {$_.KeyProtectorType -eq 'RecoveryPassword'}} -ErrorAction SilentlyContinue
 $volumes = Get-BitLockerVolume
 
-#Step 1 - autounlock
-foreach ($item in $volumes)
-{
-    if ($item.AutoUnlockEnabled -eq $true)
-    {
-        $drive = $item.MountPoint
-        LogWrite "Disable AutoUnlock on $drive"
-        Disable-BitLockerAutoUnlock -MountPoint $item.MountPoint
-    }
-}
 
-#Step 2 - Start Decrypting
+#Step 1 - Check Encription
 foreach ($item in $volumes)
 {
     if ($item.CapacityGB -ge 100)
     {  
-        $BitLockerDecrypted = $true
+        $BitLockerDecrypted = $false
         $BitLockerEncrypted = Get-BitLockerVolume -MountPoint $item.MountPoint | where {$_.VolumeStatus -ne "FullyDecrypted"} -ErrorAction SilentlyContinue        
         try
         {
@@ -156,19 +147,19 @@ foreach ($item in $volumes)
             {
                 $Msg = "Drive " + $item.MountPoint + " already encrypted"
                 LogWrite $msg
-                $BitLockerDecrypted = $false
+                $BitLockerDecrypted = $true
             }
         }
         catch 
         {
-            LogWrite "Error Decrypting"
+            LogWrite "Check Encription"
             Write-host "$Error[0]"
             ForceErr
         }
     }    
 }
 
-if ($BitLockerDecrypted -eq $false)
+if ($BitLockerDecrypted -eq $true)
 {
     LogWrite "The drive is fully encrypted now :-), we are exiting the script !"  
     $now = Get-Date -Format "dd-MM-yyyy hh:mm:ss"
@@ -179,7 +170,7 @@ if ($BitLockerDecrypted -eq $false)
     exit 0    
 }
 
-#Step 3 - Check if TPM is enabled and initialise if required
+#Step 2 - Check if TPM is enabled and initialise if required
 LogWrite "Check if TPM is enabled and initialise if required"
 
 try
@@ -201,7 +192,7 @@ catch
     ForceErr
 }
 
-#Step 4 - Check if BitLocker volume is provisioned and partition system drive for BitLocker if required
+#Step 3 - Check if BitLocker volume is provisioned and partition system drive for BitLocker if required
 LogWrite "Check if BitLocker volume is provisioned and partition system drive for BitLocker if required"
 if ($WindowsVer -and $TPMEnabled -and !$BitLockerReadyDrive) 
 {
@@ -209,7 +200,7 @@ if ($WindowsVer -and $TPMEnabled -and !$BitLockerReadyDrive)
     BdeHdCfg -target $env:SystemDrive shrink -quiet
 }
 
-#Step 5 - Check BitLocker AD Key backup Registry values exist and if not, create them.
+#Step 4 - Check BitLocker AD Key backup Registry values exist and if not, create them.
 LogWrite "Check BitLocker AD Key backup Registry values exist and if not, create them."
 
 try
@@ -218,8 +209,8 @@ try
     if (Test-Path "$BitLockerRegLoc\FVE")
     {
         LogWrite '$BitLockerRegLoc\FVE Key already exists'        
-        Remove-Item -Path "$BitLockerRegLoc\FVE"
-        New-Item -Path "$BitLockerRegLoc" -Name 'FVE'
+        #Remove-Item -Path "$BitLockerRegLoc\FVE"
+        #New-Item -Path "$BitLockerRegLoc" -Name 'FVE'
     }
     Else
     {
@@ -234,7 +225,7 @@ catch
     ForceErr
 }
 
-#Step 6 - If all prerequisites are met, then enable BitLocker
+#Step 5 - If all prerequisites are met, then enable BitLocker
 LogWrite "If all prerequisites are met, then enable BitLocker"
 try
 {
@@ -246,50 +237,64 @@ try
             {
                 $drive = $item.MountPoint
 
-                LogWrite "Delete BitLocker Key Protector if exist"
-                $keys = ((Get-BitLockerVolume -MountPoint $item.MountPoint).KeyProtector).KeyProtectorId
-                if ($keys -ne $null)
+                $BitLockerEncrypted = Get-BitLockerVolume -MountPoint $item.MountPoint | where {$_.VolumeStatus -ne "FullyDecrypted"} -ErrorAction SilentlyContinue        
+
+                if ($BitLockerEncrypted)
                 {
-                    foreach ($item in $keys)
+                    $Msg = "Drive " + $item.MountPoint + " already encrypted"
+                    LogWrite $msg
+                }
+
+                Else
+                {
+
+                    LogWrite "Delete BitLocker Key Protector if exist"
+                    $keys = ((Get-BitLockerVolume -MountPoint $item.MountPoint).KeyProtector).KeyProtectorId
+                    if ($keys -ne $null)
                     {
-                        Remove-BitLockerKeyProtector -MountPoint $drive -KeyProtectorId $item -ErrorAction SilentlyContinue
+                        foreach ($item in $keys)
+                        {
+                            Remove-BitLockerKeyProtector -MountPoint $drive -KeyProtectorId $item -ErrorAction SilentlyContinue
+                        }
                     }
-                }
         
-                LogWrite "Enable BitLocker"
-                #$key = ((Get-BitLockerVolume).KeyProtector).KeyProtectorId
+                    LogWrite "Enable BitLocker"
+                    #$key = ((Get-BitLockerVolume).KeyProtector).KeyProtectorId
 
-                if ($item.MountPoint -eq "C:")
-                {
-                    LogWrite "Add BitLocker Key Protector on $drive"
-                    Add-BitLockerKeyProtector -MountPoint $item.MountPoint -TpmProtector                
-                }
+                    if ($item.MountPoint -eq "C:")
+                    {
+                        LogWrite "Add BitLocker Key Protector on $drive"
+                        Add-BitLockerKeyProtector -MountPoint $item.MountPoint -TpmProtector                
+                    }
 
-                LogWrite "Enable BitLocker on $drive"
-                Enable-BitLocker -MountPoint $item.MountPoint -EncryptionMethod Aes256 -SkipHardwareTest -RecoveryPasswordProtector -UsedSpaceOnly -ErrorAction SilentlyContinue
-	            #Enable-BitLocker -MountPoint $env:SystemDrive -RecoveryPasswordProtector -ErrorAction SilentlyContinue
+                    LogWrite "Enable BitLocker on $drive"
+                    Enable-BitLocker -MountPoint $item.MountPoint -EncryptionMethod XtsAes256 -SkipHardwareTest -RecoveryPasswordProtector -UsedSpaceOnly 
+	                #Enable-BitLocker -MountPoint $env:SystemDrive -RecoveryPasswordProtector -ErrorAction SilentlyContinue
 
         
-                # don't quit till fully encrypted
-                do
-                {
-                    $BitLockerOSVolume = Get-BitLockerVolume -MountPoint $item.MountPoint
-                    $percent =  $BitLockerOSVolume.EncryptionPercentage
-                    LogWrite "Percentage Encrypted: '$percent'%."
-                    Start-Sleep -Seconds 13            
-                }
+                    # don't quit till fully encrypted
+                    do
+                    {
+                        $BitLockerOSVolume = Get-BitLockerVolume -MountPoint $item.MountPoint
+                        $percent =  $BitLockerOSVolume.EncryptionPercentage
+                        LogWrite "Percentage Encrypted: '$percent'%."
+                        Start-Sleep -Seconds 13            
+                    }
 
-                until ($BitLockerOSVolume.EncryptionPercentage -eq 100)
-            }
+                    until ($BitLockerOSVolume.EncryptionPercentage -eq 100)
+      
 
-            if ($item.MountPoint -ne "C:")
-            {
-                $getstatus = Get-BitLockerVolume -MountPoint $item.MountPoint | where {$_.VolumeStatus -eq "FullyEncrypted"}
-                if ($getstatus)
-                {
-                    write-host "!!!"
-                    LogWrite "Enable BitLocker AutoUnlock on $drive"
-                    Enable-BitLockerAutoUnlock -MountPoint $item.MountPoint  
+                    if ($item.MountPoint -ne "C:")
+                    {
+                        $getstatus = Get-BitLockerVolume -MountPoint $item.MountPoint | where {$_.VolumeStatus -eq "FullyEncrypted"}
+                        if ($getstatus)
+                        {
+                            write-host "!!!"
+                            Disable-BitLockerAutoUnlock -MountPoint $item.MountPoint
+                            LogWrite "Enable BitLocker AutoUnlock on $drive"
+                            Enable-BitLockerAutoUnlock -MountPoint $item.MountPoint  
+                        }
+                    }
                 }
             }
         }
@@ -313,4 +318,3 @@ AutoPilot "End  " $now
 $intunelog = "C:\ProgramData\Microsoft\IntuneManagementExtension\Logs\IntuneManagementExtension-" + $LogFile.Split("\")[-1]
 Copy-Item $LogFile $intunelog -Force -ErrorAction SilentlyContinue
 Stop-Transcript
-
